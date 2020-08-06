@@ -1,0 +1,499 @@
+.include APP.inc		;300	<=>  				;Last Page		 
+;Dissambly into geoProgrammer by Paul B Murdaugh		8/1/20
+;Label Naming based on work of Maciej 'YTM/Alliance' Witjowiak 18-20.04.99
+	DNibble1:
+		.byte	$0F	
+		.byte	$07,$0D,$05,$0B,$03,$09,$01,$0E
+		.byte	$06,$0C,$04,$0A,$02,$08,$00
+	DNibble2:
+		.byte	$80,$20,$A0,$40,$C0,$60,$E0,$10
+		.byte	$90,$30,$B0,$50,$D0,$70,$F0		DSendByte:
+		ldy	#$00	
+		sty	z73	
+		sty	z74	
+		iny	
+		sty	z71	
+		ldy	#$00	
+		jsr	DDunk4_1	
+		lda	z71	
+		jsr	DSendB3	
+		ldy	z71	
+	DSendB1:
+		jsr	DDunk4_1	
+	DSendB2					=*
+		dey	
+		lda	(z73),Y	
+	DSendB3:
+		tax	
+		lsr	A	
+		lsr	A	
+		lsr	A	
+		lsr	A	
+		sta	z70	
+		txa	
+		and	#$0F	
+		tax	
+		LoadB	D_1800,#$04
+	16$
+		bit	D_1800	
+		beq	16$	
+		nop	
+		nop	
+		nop	
+		nop	
+		stx	D_1800	
+		jsr	J_03E0	
+		txa	
+		rol	A	
+		and	#$0F	
+		sta	D_1800	
+		php	
+		plp	
+		nop	
+		nop	
+		nop	
+		ldx	z70	
+		lda	DNibble1,X	
+		sta	D_1800	
+		jsr	J_03DF	
+		rol	A	
+		and	#$0F	
+		cpy	#$00	
+		sta	D_1800	
+		jsr	J_03DE	
+		bne	DSendB2	
+		jsr	J_03DA	
+		beq	DRecvB2	
+	DRecvWord:
+		ldy	#$01	
+		jsr	DRecvByte	
+		sta	z71	
+		tay	
+		jsr	DRecvByte	
+		ldy	z71	
+		rts	DRecvByte:
+		jsr	DDunk4_1	
+		jsr	J_03DB	
+		LoadB	z70,#$00
+	22$
+		eor	z70	
+		sta	z70	
+		jsr	J_03DB	
+		lda	#$04	
+	20$
+		bit	D_1800	
+		beq	20$	
+		jsr	J_03DC	
+		lda	D_1800	
+		jsr	J_03DB	
+		asl	A	
+		ora	D_1800	
+		php	
+		plp	
+		nop	
+		nop	
+		and	#$0F	
+		tax	
+		lda	D_1800	
+		jsr	J_03DE	
+		asl	A	
+		ora	D_1800	
+		and	#$0F	
+		ora	T_030F,X	
+		dey	
+		sta	(z73),Y	
+		bne	22$	
+	DRecvB2:
+		ldx	#$02	
+		stx	D_1800	
+		jsr	J_03D9	
+		nop	
+		nop	
+		nop	
+		nop	
+		nop	
+		nop	
+		nop	
+		nop	
+		rts	DDunk4:
+		dec	z48	
+		bne	DDunk4_1	
+		jsr	DDunk8_2	
+	DDunk4_1:
+		LoadB	D_1805,#$C0
+	24$
+		bit	D_1805	
+		bpl	DDunk4	
+		lda	#$04	
+		bit	D_1800	
+		bne	24$	
+		LoadB	D_1800,#$00
+		rts	DDrvStart:
+		php	
+		sei	
+		PushB	z49
+		ldy	#$00	
+	26$
+		dey	
+		bne	26$	
+		ldy	#$00	
+	28$
+		dey	
+		bne	28$	
+		jsr	J_048E	
+		lda	D_180F	
+		ora	#$20	
+		sta	D_180F	
+		jsr	J_A483	
+		LoadB	D_1800,#$00
+		LoadB	D_1802,#$1A
+		jsr	DRecvB2	
+		lda	#$04	
+	30$
+		bit	D_1800	
+		beq	30$	
+	DDrvLoop:
+		jsr	DDunk8	
+		LoadW	z73,#DExcAdd
+		jsr	DRecvWord	
+		MoveB	D_06F9,DDatas
+		cmp	#$24	
+		bcs	32$	
+		lda	D_180F	
+		and	#$FB	
+		sta	D_180F	
+		jmp	J_0461	
+	32$
+		sec	
+		sbc	#$23	
+		sta	DDatas	
+		lda	D_180F	
+		ora	#$04	
+		sta	D_180F	
+		jsr	DDunk8_1	
+		LoadW	z73,#$0700
+		lda	#$04	
+		pha	
+		lda	#$2F	
+		pha	
+		jmp	(DExcAdd)		DExitTurbo:
+		jsr	DDunk4_1	
+		LoadB	z33,#$00
+		jsr	D_F98F	
+		LoadB	D_1C0C,#$EC
+		jsr	J_048E	
+		pla	
+		pla	
+		PopB	z49
+		plp	
+		rts	J_048E:
+		lda	D_180F	
+		and	#$DF	
+		sta	D_180F	
+		jsr	J_A483	
+		jsr	J_FF82	
+		lda	D_02AF	
+		ora	#$80	
+		sta	D_02AF	
+		rts	DChngDev:
+		MoveB	D_06F9,z77
+		eor	#$60	
+		sta	z78	
+		rts	DRdSect:
+		jsr	J_062A	
+		ldy	#$00	
+		jsr	DSendB1	
+		jmp	DSendByte	DDunk8:
+		lda	#$F7	
+		bne	DDunk8_3	
+	DDunk8_1:
+		lda	#$08	
+		ora	D_1C00	
+		bne	DDunk8_4	
+	DDunk8_2:
+		LoadB	z20,#$00
+		LoadB	z3E,#$FF
+		lda	#$FB	
+	DDunk8_3					=*
+		and	D_1C00	
+		jmp	J_04DD	
+		lda	D_1C00	
+		and	#$9F	
+		ora	DTrackTb,X	
+	DDunk8_4					=*
+		sta	D_1C00	
+		rts	DTrackTb:
+		.byte	$00,$20,$40,$60  
+	DDunk5:
+		jsr	DDnk12	
+		lda	z22	
+		beq	38$	
+		ldx	$00	
+		dex	
+		beq	40$	
+	38$
+		PushB	z12
+		PushB	z13
+		jsr	DNewDsk1	
+		PopB	z13
+		tax	
+		PopB	z12
+		ldy	$00	
+		cpy	#$01	
+		bne	42$	
+		cpx	z17	
+		bne	44$	
+		cmp	z16	
+		bne	44$	
+		lda	#$00	
+	40$
+		pha	
+		lda	z22	
+		ldx	#$FF	
+		sec	
+		sbc	DDatas	
+		beq	46$	
+		bcs	48$	
+		eor	#$FF	
+		adc	#$01	
+		ldx	#$01	
+	48$
+		jsr	DDunk6	
+		MoveB	DDatas,z22
+		jsr	DNewDsk5	
+	46$
+		pla	
+	42$
+		rts	
+	44$
+		LoadB	$00,#$0B
+		rts	DDunk6:
+		stx	z4A	
+		asl	A	
+		tay	
+		lda	D_1C00	
+		and	#$FE	
+		sta	z70	
+		LoadB	z71,#$2F
+	54$
+		lda	z70	
+		clc	
+		adc	z4A	
+		eor	z70	
+		and	#$03	
+		eor	z70	
+		sta	z70	
+		sta	D_1C00	
+		lda	z71	
+		jsr	J_0573	
+		cpy	#$06	
+		bcc	50$	
+		cmp	#$1B	
+		bcc	52$	
+		sbc	#$03	
+		bne	52$	
+	50$
+		cmp	#$2F	
+		bcs	52$	
+		adc	#$04	
+	52$
+		sta	z71	
+		dey	
+		bne	54$	
+		lda	#$96	
+	DDunk6_4:
+		pha	
+		sta	D_1805	
+	56$
+		lda	D_1805	
+		bne	56$	
+		pla	
+		rts	DNewDsk:
+		jsr	DDnk12	
+	DNewDsk1:
+		ldx	$00	
+		dex	
+		beq	DNewDsk2	
+		ldx	#$FF	
+		lda	#$01	
+		jsr	DDunk6	
+		ldx	#$01	
+		txa	
+		jsr	DDunk6	
+		lda	#$FF	
+		jsr	J_0573	
+		jsr	J_0573	
+	DNewDsk2:
+		LoadB	z70,#$04
+	62$
+		jsr	DDnk11	
+		CmpBI	z18,#$24
+		bcc	58$	
+		sbc	#$23	
+	58$
+		sta	z22	
+		ldy	$00	
+		dey	
+		beq	DNewDsk5	
+		dec	z70	
+		bmi	60$	
+		ldx	z70	
+		jsr	J_04D5	
+		sec	
+		bcs	62$	
+	60$
+		LoadB	z22,#$00
+		rts	DNewDsk5:
+		jsr	J_F24B	
+		sta	z43	
+		jmp	J_04D5	DDunk9:
+		tax	
+		bit	D_06F5	
+		bpl	64$	
+		jsr	DDnk12_1	
+		ldx	#$00	
+		stx	D_06F5	
+	64$
+		cpx	z22	
+		beq	66$	
+		jsr	DNewDsk2	
+		cmp	#$01	
+		bne	66$	
+		ldy	z19	
+		iny	
+		cpy	z43	
+		bcc	68$	
+		ldy	#$00	
+	68$
+		sty	z19	
+		LoadB	z45,#$00
+		LoadW	z32,#z18
+		jsr	DDnk11_1	
+	66$
+		rts	DWrtSect:
+		jsr	DDunk5	
+		ldx	$00	
+		dex	
+		bne	70$	
+		jsr	DDunk9	
+	70$
+		ldy	#$00	
+		jsr	DRecvByte	
+		eor	z70	
+		sta	z3A	
+		ldy	$00	
+		dey	
+		bne	72$	
+		lda	D_1C00	
+		and	#$10	
+		bne	72$	
+		LoadB	$00,#$08
+	72$
+		jsr	DSendByte	
+		lda	#$10	
+		jmp	J_062F	
+		jsr	DDunk5	
+		lda	#$00	
+		ldx	$00	
+		dex	
+		beq	DDnk11_0	
+		rts	DDnk11:
+		lda	#$30	
+	DDnk11_0					=*
+		sta	z45	
+		LoadW	z32,#D_06F9
+	DDnk11_1:
+		LoadB	z31,#$07
+		tsx	
+		stx	z49	
+		ldx	#$01	
+		stx	$00	
+		dex	
+		stx	D_02AB	
+		stx	D_02FE	
+		stx	z3F	
+		LoadB	D_1C0C,#$EE
+		CmpBI	z45,#$10
+		beq	76$	
+		cmp	#$30	
+		beq	78$	
+		jmp	J_9606	
+	78$
+		jmp	J_944F	
+	76$
+		jsr	D_F78F	
+		jsr	J_970F	
+		ldy	#$09	
+	80$
+		bit	D_180F	
+		bmi	80$	
+		bit	D_1C00	
+		dey	
+		bne	80$	
+		LoadB	D_1C03,#$FF
+		lda	D_1C0C	
+		and	#$1F	
+		ora	#$C0	
+		sta	D_1C0C	
+		lda	#$FF	
+		ldy	#$05	
+		sta	D_1C01	
+	82$
+		bit	D_180F	
+		bmi	82$	
+		bit	D_1C00	
+		dey	
+		bne	82$	
+		ldy	#$BB	
+	86$
+		lda	T_0100,Y	
+	84$
+		bit	D_180F	
+		bmi	84$	
+		sta	D_1C01	
+		iny	
+		bne	86$	
+	90$
+		lda	(z30),Y	
+	88$
+		bit	D_180F	
+		bmi	88$	
+		sta	D_1C01	
+		iny	
+		bne	90$	92$
+		bit	D_180F	
+		bmi	92$	
+		lda	D_1C0C	
+		ora	#$E0	
+		sta	D_1C0C	
+		LoadB	D_1C03,#$00
+		sta	z50	
+		LoadB	$00,#$01
+		rts	DDnk12:
+		lda	z20	
+		and	#$20	
+		bne	DDnk12_2	
+		jsr	D_F97E	
+		LoadB	D_06F5,#$FF
+	DDnk12_1:
+		ldy	#$C8	
+	96$
+		dex	
+		bne	96$	
+		dey	
+		bne	96$	
+		sty	z3E	
+		LoadB	z20,#$20
+	DDnk12_2					=*
+		LoadB	z48,#$FF
+		rts
+
+	D_06F5:
+		.byte	0     
+	DDatas:
+		.byte	0
+	DExcAdd:
+		.word	NULL	
+	D_06F9:
+		.word	0	
+	

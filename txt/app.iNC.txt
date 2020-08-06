@@ -1,0 +1,12 @@
+.if Pass1
+	.noeqin
+	.noglbl
+		.include APP.con
+		.include APP.mac
+	.glbl
+	.eqin
+	.include APP.sym
+	.include APP.zym
+.endif
+
+.psect

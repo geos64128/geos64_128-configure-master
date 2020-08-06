@@ -1,0 +1,55 @@
+;Reverse Engineered by Paul B Murdaugh. 7/30/20 10:30PM - 8/3/20 12:05 AM
+;paulbmurdaugh@gmail.com
+
+.if	Pass1
+	.noeqin
+	.include	APP.con
+.endif
+
+.header		;start of header section
+	.word	0				;first two bytes are always zero
+	.byte	3				;width in bytes
+	.byte	21				;and height in scanlines of:
+	.byte	$80 | USR		;Commodore file type, with bit 7 set.
+	.byte	AUTO_EXEC		;Geos file type
+	.byte	VLIR			;Geos file structure type
+	.word	LoadAddress		;start address of program (where to load to)
+	.word	LoadAddress-1	;usually end address, but only needed for
+							;desk accessories.
+	.word	ProgStart		;init address of program (where to JMP to)
+;		0123456789012345678901
+	.byte	"Configure   V",VMAJ,".",VMIN,0,0,0,$80
+;							;Name: 12b  :Ver: 4b   Pad: 3z  40/80  flag: 1b
+							;permanent filename: 12 characters,
+							;followed by 4 character version number,
+							;followed by 3 zeroes,
+							;followed by 40/80 column flag.
+	
+			
+;		0123456789012345678901
+	.byte	"BSW/Jim Collette",NULL,0,0,0
+							;19 char author name plus NULL terminator
+
+
+	;end of header section which is checked for accuracy
+	;---	Class: Offset $75, Size = 20 Bytes
+;		0123456789012345678901
+;	.byte	"                   "
+	.block	20			
+
+	;--	App Data: Offset $89: Size =  23 	
+	.block	23
+;	.byte	$00,$00,$00,$00,$00,$00,$00,$00	
+;	.byte	$00,$00,$00,$00,$00,$00,$00,$00
+;	.byte	$00,$00,$00,$00,$00,$00
+
+	;---	Information Field: Offset $A0, Size=95
+	;	Null Terminated Description of File
+					INF_START				=*
+	.byte	"Allows varying disk configurations:  1541,"
+	.byte	" 1571, 1581 & RAM disks supported.",NULL
+					INF_SIZE=*-INF_START	
+.if INF_SIZE < 95
+	.block	95 - INF_SIZE
+.endif
+.endh

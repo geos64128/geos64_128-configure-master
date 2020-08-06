@@ -1,0 +1,241 @@
+.include APP.inc		;300	<=>  				;Last Page		 
+
+;Turbo code that gets executed in the 1581 drive.
+;Must built with .psect $300;Dissambly into geoProgrammer by Paul B Murdaugh		8/1/20
+;Label Naming based on work of Maciej 'YTM/Alliance' Witjowiak 18-20.04.99
+	DNibble1:
+		.byte	$0F	
+		.byte	$07,$0D,$05,$0B,$03,$09,$01,$0E
+		.byte	$06,$0C,$04,$0A,$02,$08
+	DNibble2:
+		.byte	$00,$80,$20,$A0,$40,$C0,$60,$E0
+		.byte	$10,$90,$30,$B0,$50,$D0,$70,$F0	DSendByte:
+		ldy	#$00	
+		lda	D_04EB	
+		bpl	02$	
+		ldy	#$02	
+	02$
+		jsr	J_0362	
+		LoadB	z7E,#$05
+		ldy	#$00	
+		sty	z7F	
+		iny	
+		jsr	J_0354	
+		jsr	J_046A	
+		cli	
+	06$
+		lda	D_04E8	
+		beq	04$	
+		dex	
+		bne	04$	
+		dec	D_04E8	
+		bne	04$	
+		jsr	J_04BE	
+	04$
+		lda	#$04	
+		bit	D_4001	
+		bne	06$	
+		sei	
+		rts	
+		sty	Z_0042	
+		ldy	#$00	
+		jsr	J_0402	
+		lda	Z_0042	
+		jsr	J_0368	
+		ldy	Z_0042	
+		jsr	J_0402	
+	10$
+		dey	
+		lda	(z7E),Y	
+		tax	
+		lsr	A	
+		lsr	A	
+		lsr	A	
+		lsr	A	
+		sta	Z_0041	
+		txa	
+		and	#$0F	
+		tax	
+		LoadB	D_4001,#$04
+	08$
+		bit	D_4001	
+		beq	08$	
+		nop	
+		nop	
+		nop	
+		nop	
+		stx	D_4001	
+		jsr	J_0401	
+		txa	
+		rol	A	
+		and	#$0F	
+		sta	D_4001;continued
+		php	
+		plp	
+		nop	
+		nop	
+		nop	
+		ldx	Z_0041	
+		lda	DNibble1,X	
+		sta	D_4001	
+		jsr	J_0400	
+		rol	A	
+		and	#$0F	
+		cpy	#$00	
+		sta	D_4001	
+		bne	10$	
+		jsr	J_03FB	
+		beq	12$	
+		jsr	J_0402	
+		jsr	J_03FB	
+		LoadB	Z_0041,#$00
+	16$
+		eor	Z_0041	
+		sta	Z_0041	
+		jsr	J_03FC	
+		lda	#$04	
+	14$
+		bit	D_4001	
+		beq	14$	
+		jsr	J_03FD	
+		lda	D_4001	
+		jsr	J_03FC	
+		asl	A	
+		ora	D_4001	
+		php	
+		plp	
+		nop	
+		nop	
+		and	#$0F	
+		tax	
+		lda	D_4001	
+		jsr	J_03FF	
+		asl	A	
+		ora	D_4001	
+		and	#$0F	
+		ora	T_030F,X	
+		dey	
+		sta	(z7E),Y	
+		bne	16$	
+	12$
+		ldx	#$02	
+		stx	D_4001	
+		php	
+		plp	
+		php	
+		plp	
+		php	
+		plp	
+		php	
+		plp	
+		nop	
+		nop	
+		nop	
+		nop	
+		nop	
+		nop	
+		nop	
+		rts	18$
+		lda	#$04	
+		bit	D_4001	
+		bne	18$	
+		LoadB	D_4001,#$00
+		rts	DDrvStart:
+		sei	
+		PushB	Z_0041
+		PushB	Z_0042
+		PushW	z7E
+		ldx	#$02	
+		ldy	#$00	
+	20$
+		dey	
+		bne	20$	
+		dex	
+		bne	20$	
+		jsr	J_03ED	
+		lda	#$04	
+	22$
+		bit	D_4001	
+		beq	22$	
+		LoadW	z7E,#D_04E9
+		ldy	#$01	
+		jsr	J_03AD	
+		sta	Z_0042	
+		tay	
+		jsr	J_03AD	
+		jsr	J_046E	
+		LoadW	z7E,#$0600
+		lda	#$04	
+		pha	
+		lda	#$2F	
+		pha	
+		jmp	(D_04E9)	ExtTrbo:
+		jsr	J_0402	
+		pla	
+		pla	
+		PopW	z7E
+		PopB	Z_0042
+		PopB	Z_0041
+		cli	
+		rts	J_046A:
+		lda	#$BF	
+		bne	24$	
+		lda	#$40	
+		ora	D_4000	
+		bne	26$	
+	24$
+		and	D_4000	
+	26$
+		sta	D_4000	
+		rts	DWrtSect:
+		jsr	J_04B0	
+		ldy	#$00	
+		jsr	J_03AD	
+		lda	#$B6	
+		jsr	J_04D1	
+		MoveB	Z_0005,D_01FA
+		bne	28$	
+		LoadB	D_04E8,#$90
+		jsr	J_04D1	
+	28$
+		jmp	J_032B	DNewDsk:					;049B
+		jsr	DExitTurbo	
+		lda	#$92	
+		jsr	J_04D1	
+		CmpBI	Z_0005,#$01
+		bcc	30$	
+		beq	30$	
+		rts	
+	30$
+		lda	#$B0	
+		bne	DRdSect2	
+		lda	D_04EB	
+		and	#$7F	
+		cmp	z11	
+		beq	DRdSect3	
+	DExitTurbo:
+		lda	D_04E8	
+		beq	DRdSect3	
+		ldx	#$03	
+		jsr	J_FF6C	
+		LoadB	D_04E8,#$00
+		lda	#$86	
+		bne	DRdSect2	
+	DRdSect:
+		jsr	J_04B0	
+		lda	#$80	
+	DRdSect2					=*
+		sta	Z_0005	
+		lda	D_04EB	
+		and	#$7F	
+		sta	z11	
+		MoveB	D_04EC,z12
+		ldx	#$03	
+		lda	Z_0002,X	
+		jsr	J_FF54	
+	DRdSect3					=*
+		rts	
+		.byte	0
+	D_04E8:	.byte	0
+	D_04E9:	.byte	0,0
+	

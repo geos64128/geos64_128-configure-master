@@ -1,0 +1,320 @@
+;.macro	SubVWS subtrahend,minuend,difference;	Sub Value From Word and store
+;.macro	MoveXB source,dest
+;.macro	MoveBX source,dest
+;.macro 	SubWVS subtrahend,minuend,result
+;macro	addI value	;clc/adc immmediate	
+;macro 	cldxI label,value	;Conditional LDX #. branch dependant
+;macro 	cldaI label,value	;Conditional LDA #. branch dependant
+;macro	AddBW source,dest
+;macro	SubWS subtrahend,minuend,result
+;macro	add source				;1
+;macro AddB source,dest		;2
+;macro AddW source,dest		;3
+;macro AddVB value,dest		;4
+;macro AddVW value,dest
+;.macro AddWS addend,addend2,result
+;macro bra addr
+;macro ;;bge addr
+;macro CmpB source,dest
+;macro CmpBI source,immed
+;macro CmpW source,dest		;11
+;macro CmpWI source,immed		;12
+;macro DecW dest
+;macro DecW dest
+;macro PushB source
+;macro PushW source
+;macro PushX
+;macro PushY
+;macro PopY
+;macro PopY
+;macro PopB dest		;21
+;macro PopW dest
+;macro LoadB dest,value
+;macro LoadW dest,value
+;macro MoveB source,dest
+;macro MoveW source,dest
+;macro sub source
+;macro SubB source,dest
+;macro SubW source,dest
+;macro SubVB value,dest
+;macro SubVW value,dest		;31
+
+.macro AddVWS addend,addend2,result
+	lda	addend2
+	clc
+	adc	#[(addend)
+	sta	result
+;.if (addend >= 0) && (addend <= 255)
+;	bcc	noInc
+;	MoveB addend2+1,result+1
+;noInc:
+;.else
+	lda	addend2+1
+	adc	#](addend)
+	sta	result+1
+.endm
+.macro	SubVWS subtrahend,minuend,difference
+	sec	
+	lda	minuend
+	sbc	#[(subtrahend)
+	sta	difference
+	lda	minuend +1
+	sbc	#](subtrahend)
+	sta	difference +1
+.endm
+.macro MoveBX source,dest
+	lda	source
+	sta	dest,X
+.endm
+.macro MoveXB source,dest
+	lda	source,X
+	sta	dest
+.endm
+.macro	SubWVS subtrahend,minuend,difference
+	lda	#[(minuend)
+	sec
+	sbc	subtrahend
+	sta	difference
+	lda	#](minuend)
+	sbc	subtrahend + 1
+	sta	difference + 1
+.endm
+.macro addI value
+	clc
+	adc #[(value)
+.endm
+.macro	cldxI label,value
+	.byte $2c
+label:
+	ldx #[(value)
+.endm
+;	cldI label,"lda",value
+.macro cldaI label,value
+	.byte $2c
+label:
+	lda #[(value)
+.endm
+
+.macro clda label,source
+	.byte $2c
+label:
+	lda source
+.endm
+
+
+.macro AddBW addend,sum
+	lda	addend
+	clc
+	adc	sum
+	sta	sum
+	bcc	NoInc
+	inc	sum+1
+NoInc:
+.endm
+.macro SubWS subtrahend,minuend,result
+	lda	minuend
+	sec
+	sbc	subtrahend
+	sta	result
+	lda	minuend+1
+	sbc	subtrahend+1
+	sta	result+1
+.endm
+.macro AddWS addend,addend2,result
+	lda	addend
+	clc
+	adc	addend2
+	sta	result
+	lda	addend+1
+	adc	addend2+1
+	sta	result+1
+.endm
+.macro SubVB value,dest
+	sec
+	lda	dest
+	sbc	#[(value)
+	sta	dest
+.endm
+.macro DecW dest
+	lda	dest
+	bne	dolow
+	dec	dest+1
+	dolow:
+	dec	dest	
+.endm
+.macro	IncW dest
+	inc	dest
+	bne    done
+	inc	dest+1
+	done:
+.endm
+.macro PushX
+	 txa
+	 pha		
+.endm
+.macro PushY
+	 tya
+	 pha		
+.endm
+.macro PopX
+	 pla	
+	 tax		
+.endm
+.macro PopY
+	 pla
+	 tay		
+.endm
+.macro LoadB dest,value
+	lda #value
+	sta dest
+.endm
+.macro LoadW dest,value
+	lda #](value)
+	sta dest+1
+	lda #[(value)
+	sta dest+0
+.endm
+.macro MoveB source,dest
+ lda source
+ sta dest
+.endm
+.macro MoveW source,dest
+ lda source+1
+ sta dest+1
+ lda source+0
+ sta dest+0
+.endm
+.macro add source
+	clc
+	adc source
+.endm
+.macro AddB source,dest
+	clc
+	lda source
+	adc dest
+	sta dest
+.endm
+.macro AddW source,dest
+ lda source
+ clc
+ adc dest+0
+ sta dest+0
+ lda source+1
+ adc dest+1
+ sta dest+1
+.endm
+.macro AddVB value,dest,store
+ lda dest
+ clc
+ adc #value
+ .if (store != 0)
+    sta store
+ .else
+ 	sta dest
+ .endif
+.endm
+.macro AddVW value,dest
+ clc
+ lda #[(value)
+ adc dest+0
+ sta dest+0
+.if (value >= 0) && (value <= 255)
+ bcc noInc
+ inc dest+1
+noInc:
+.else
+ lda #](value)
+ adc dest+1
+ sta dest+1
+.endif
+.endm.macro sub source
+ sec
+ sbc source
+.endm
+.macro SubB source,dest
+ sec
+ lda dest
+ sbc source
+ sta dest
+.endm
+.macro SubW source,dest
+ lda dest+0
+ sec
+ sbc source+0
+ sta dest+0
+ lda dest+1
+ sbc source+1
+ sta dest+1
+.endm
+
+.macro SubVW value,dest
+	sec
+	lda dest
+	sbc #[(value)
+	sta dest   
+ 	lda dest+1	
+	.if (value >= 0) && (value <= 255)
+		sbc #0
+	.else
+		sbc #](value)
+	.endif
+	sta dest+1
+.endm
+.macro CmpB source,dest
+ lda source
+ cmp dest
+.endm
+.macro CmpBI source,immed
+ lda source
+ cmp #immed
+.endm
+.macro CmpW source,dest
+ lda source+1
+ cmp dest+1
+ bne done
+ lda source+0
+ cmp dest+0
+done:
+.endm
+.macro CmpWI source,immed
+ lda source+1
+ cmp #](immed)
+ bne done
+ lda source+0
+ cmp #[(immed)
+done:
+.endm
+.macro PushB source
+ lda source
+ pha
+.endm
+.macro PushW source
+ lda source+1
+ pha
+ lda source+0
+ pha
+.endm
+.macro PopB dest
+ pla
+ sta dest
+.endm
+.macro PopW dest
+ pla
+ sta dest+0
+ pla
+ sta dest+1
+.endm
+.macro bra addr
+ clv
+ bvc addr
+.endm;
+
+.macro	smbf	bitNumber,dest
+	lda	#(1 << bitNumber)
+	ora	dest
+	sta	dest
+.endm
+
+;.macro bge addr
+;bcs addr
+;.endm

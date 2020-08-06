@@ -1,0 +1,337 @@
+.include APP.inc		;1DF2	<=>    20D8				;17
+
+
+.if COMMENT
+
+p9	DoDlg:	;All Dialog Box Calls go through here				;2022
+
+.endif;Reverse Engineered by Paul B Murdaugh. 7/30/20 10:30PM - 8/3/20 12:05 AM
+;paulbmurdaugh@gmail.com	J_1DF2:
+		ldy	curDrive	
+		lda	#DRV_NULL	
+		sta	driveNdxTyp,Y	
+		sta	driveData,Y	
+		sta	T_03FE,Y	
+		sta	diskOpenFlg,Y	
+		rts	D_1E04:
+		.byte	0 
+
+	J_1E05:
+		LoadB	D_1E04,#$00
+		lda	D_212B	
+		cmp	#10	
+		bcc	32$	
+		jmp	J_1EB4	
+	32$
+		LoadB	D_1E04,#$00
+		ldy	D_212B	
+		lda	D_212F	
+		sta	driveNdxTyp,Y	
+		inc	numDrives	
+		lda	D_212B	
+		jsr	J_1DE1	
+		bne	34$	
+		lda	D_212B	
+		eor	#%00000001		;$01	
+		tay	
+		lda	driveNdxTyp,Y	
+		beq	36$	
+		tya	
+		ldy	#11	
+		bit	sysRAMFlg	
+		bvs	38$	
+		eor	#%00000010		;$02	
+		tay	
+	38$
+		lda	driveNdxTyp,Y	
+		beq	40$	
+	34$
+		bne	42$	
+	40$
+		sty	D_1E04	
+		jsr	J_0739	
+		lda	D_1E04	
+		jsr	J_1FC5	
+		jsr	PurgeTurbo	
+	36$
+		ldx	#]B_1FA1
+		lda	#[B_1FA1	
+		jsr	DoDlg	
+		CmpBI	r0,#CANCEL
+		beq	44$	
+		lda	D_212B	
+		jsr	J_1DE1	
+		bne	44$	
+		lda	D_212B	
+		eor	#%00000001		;$01	
+		sta	curDevice	
+		sta	curDrive	
+		tay	
+		lda	D_212F	
+		sta	driveNdxTyp,Y	
+		lda	D_212B	
+		jsr	J_1FC5	
+		MoveB	D_212B,curDevice
+		sta	curDrive	
+		eor	#%00000001		;$01	
+		tay	
+		lda	#DRV_NULL	
+		sta	driveNdxTyp,Y	
+		txa	
+		bne	36$	44$
+		lda	D_1E04	
+		beq	42$	
+		jsr	J_1DE1	
+		bne	46$	
+		jsr	J_1DF2	
+		bra	42$	
+	46$
+		lda	D_212B	
+		eor	#%00000001		;$01	
+		jsr	J_1FC5	
+	42$
+		jsr	J_1DB0	
+		rts	J_1EB4:
+		LoadB	D_1E04,#$00
+		ldy	D_212B	
+		lda	D_212F	
+		sta	driveNdxTyp,Y	
+		inc	numDrives	
+		lda	D_212B	
+		jsr	J_1DE1	
+		bne	48$	
+		ldy	#8	
+		lda	driveNdxTyp,Y	
+		beq	50$	
+		ldy	#11	
+		lda	driveNdxTyp,Y	
+		beq	52$	
+	48$
+		bne	54$	
+	52$
+		sty	D_1E04	
+		lda	#8	
+		jsr	J_073E	
+		lda	D_1E04	
+		jsr	J_1FC5	
+		jsr	PurgeTurbo	
+	50$
+		ldx	#]B_1FB3
+		lda	#[B_1FB3	
+		jsr	DoDlg	
+		CmpBI	r0,#CANCEL
+		beq	56$	
+		lda	D_212B	
+		jsr	J_1DE1	
+		bne	56$	
+		LoadB	curDevice,#8
+		sta	curDrive	
+		tay	
+		lda	D_212F	
+		sta	driveNdxTyp,Y	
+		lda	D_212B	
+		jsr	J_1FC5	
+		MoveB	D_212B,curDevice
+		sta	curDrive	
+		ldy	#8	
+		lda	#DRV_NULL	
+		sta	driveNdxTyp,Y	
+		txa	
+		bne	50$	
+	56$
+		lda	D_1E04	
+		beq	54$	
+		jsr	J_1DE1	
+		bne	58$	
+		jsr	J_1DF2	
+		bra	54$	
+	58$
+		lda	#8	
+		jsr	J_1FC5	
+	54$
+		jsr	J_1DB0	
+		rts	D_1F42:
+		.byte	BOLDON	
+		.byte	"Plug in & turn ON new drive." 
+		.byte	NULL	
+	D_1F60:
+		.byte	BOLDON	
+		.byte	"(Must be set to device 8 or 9)" 
+		.byte	NULL	
+	D_1F80:
+		.byte	BOLDON	
+		.byte	"(Must be set to device 8 or 10)" 
+		.byte	NULL	
+	B_1FA1:
+		.byte	$81	
+		.byte	DBTXTSTR	
+		.byte	$0C	
+		.byte	$10	
+		.word	D_1F42	
+		.byte	DBTXTSTR	
+		.byte	$0C	
+		.byte	$20	
+		.word	D_1F60	
+		.byte	OK	
+		.byte	$01	
+		.byte	$48	
+		.byte	CANCEL	
+		.byte	$11	
+		.byte	$48	
+		.byte	NULL	B_1FB3:
+		.byte	$81	
+		.byte	DBTXTSTR	
+		.byte	$0C	
+		.byte	$10	
+		.word	D_1F42	
+		.byte	DBTXTSTR	
+		.byte	$0C	
+		.byte	$20	
+		.word	D_1F80	
+		.byte	OK	
+		.byte	$01	
+		.byte	$48	
+		.byte	CANCEL	
+		.byte	$11	
+		.byte	$48	
+		.byte	NULL	J_1FC5:
+		bit	sysRAMFlg	
+		bvc	60$	
+		pha	
+		tay	
+		lda	T_0A66,Y	
+		sta	r1	
+		lda	T_0A6A,Y	
+		sta	r1H	
+		LoadW	r0,#DISK_BASE
+		LoadW	r2,#DSKDRV_SZ		;$0D80
+		LoadB	r3,#BANK_0
+		jsr	StashRAM	
+		pla	
+	60$
+		sta	r0	
+		PushB	curDrive
+		tay	
+		lda	driveData,Y	
+		pha	
+		lda	driveNdxTyp,Y	
+		pha	
+		bpl	62$	
+		lda	r0	
+		jsr	J_073E	
+		bra	64$	
+	62$
+		lda	r0	
+		jsr	ChangeDiskDevice	
+	64$
+		ldy	curDrive	
+		pla	
+		sta	driveNdxTyp,Y	
+		pla	
+		sta	driveData,Y	
+		PopY	
+		lda	#DRV_NULL	
+		sta	driveData,Y	
+		sta	driveNdxTyp,Y	
+		rts	DoDlg:	;All Dialog Box Calls go through here				;2022
+		stx	r0H	
+		sta	r0	
+		ldx	#0	
+		stx	D_2550	
+		PushW	r5
+		jsr	J_205B	
+		PopW	r5
+		jmp	DoDlgBox	MA_DYN1:					;203D
+		ldx	#4	
+		jsr	J_204B	
+		LoadW	r0,#M_File
+		rts	J_204B:
+		stx	D_2550	
+		ldx	D_2550	
+		jmp	J_205B	RV_2054:
+		ldx	D_2550	
+		jsr	J_2060	
+		rts	J_205B:
+		lda	#FALSE	
+		bra	br66	
+	J_2060:
+		lda	#[TRUE	
+	br66					=*
+		sta	r4H	
+		jsr	J_20BA	
+	78$
+		ldx	r2H	
+		jsr	GetScanLine	
+		lda	r2	
+		asl	A	
+		asl	A	
+		asl	A	
+		bcc	68$	
+		inc	r5H	
+	68$
+		tay	
+		MoveB	r3,r4
+	76$
+		bit	r4H	
+		bpl	70$	
+		jsr	J_20AC	
+		bra	72$	
+	70$
+		jsr	J_20A0	
+	72$
+		IncW	r1
+		add	#8	
+		bcc	74$	
+		inc	r5H	
+	74$
+		tay	
+		dec	r4	
+		bne	76$	
+		inc	r2H	
+		dec	r3H	
+		bne	78$	
+		rts	J_20A0:
+		lda	(r5),Y	
+		tax	
+		PushY	
+		ldy	#0	
+		txa	
+		sta	(r1),Y	
+		pla	
+		rts	J_20AC:
+		PushY	
+		ldy	#0	
+		lda	(r1),Y	
+		tax	
+		PopY	
+		txa	
+		sta	(r5),Y	
+		tya	
+		rts.if	!GEOASSV1
+	J_20BA:
+		LoadW	r1,#D_2551
+		ldy	#0	
+	80$
+		lda	T_20D1,X	
+		sta	r2,Y	
+		inx	
+		iny	
+		cpy	#4	
+		bne	80$	
+		rts
+.else
+	J_20BA:
+		LoadW	r1,#D_2551
+		ldy	#0	
+	80$
+		lda	T_20D1,X	
+		;--- sta	r2,Y	
+		.byte	$99
+		.word	r2		
+		inx	
+		iny	
+		cpy	#4	
+		bne	80$	
+		rts
+.endif	T_20D1:
+		.byte	$08,$20,$19,$68,$00,$0E,$0E,$2C

@@ -1,0 +1,464 @@
+.include APP.inc		;300	<=>  				;Last Page		 
+
+;Turbo code that gets executed in the 1541 drive.
+;Must built with .psect $300
+;Dissambly into geoProgrammer by Paul B Murdaugh		7/31/20
+;Label Naming based on work of Maciej 'YTM/Alliance' Witjowiak 18-20.04.99
+
+	T_0100	=	$100
+	D_1C01	=	$1C01
+	D_1C03	=	$1C03
+	D_1C0C	=	$1C0C
+	DNibble1:
+		.byte	$0F	
+		.byte	$07,$0D,$05,$0B,$03,$09,$01,$0E
+		.byte	$06,$0C,$04,$0A,$02,$08,$00
+	DNibble2:
+		.byte	$00,$80,$20,$A0,$40,$C0,$60,$E0
+		.byte	$10,$90,$30,$B0,$50,$D0,$70,$F0
+	DSendByte:
+		ldy	#0	
+		jsr	DSendB1	
+		ldy	#0	
+		sty	z73	
+		sty	z74	
+		iny	
+		sty	z71	
+		ldy	#0	
+		jsr	DDunk4_1	
+		lda	z71	
+		jsr	DSendB3	
+		ldy	z71	
+	DSendB1:
+		jsr	DDunk4_1	
+	DSendB2					=*				
+		dey	
+		lda	(z73),Y	
+	DSendB3:
+		tax	
+		lsr	A	
+		lsr	A	
+		lsr	A	
+		lsr	A	
+		sta	z70	
+		txa	
+		and	#$0F	
+		tax	
+		LoadB	D_1800,#$04
+	02$
+		bit	D_1800	
+		beq	02$	
+		bit	D_1800	
+		bne	04$	
+	04$
+		bne	06$	
+	06$
+		stx	D_1800	
+		txa	
+		rol	A	
+		and	#$0F	
+		sta	D_1800	
+		ldx	z70	
+		lda	DNibble1,X	
+		sta	D_1800	
+		nop	
+		rol	A	
+		and	#$0F	
+		cpy	#$00	
+		sta	D_1800	
+		bne	DSendB2	
+		beq	DRecvB2	
+	DRecvWord:
+		ldy	#$01	
+		jsr	DRecvByte	
+		sta	z71	
+		tay	
+		jsr	DRecvByte	
+		ldy	z71	
+		rts
+	DRecvByte:
+		jsr	DDunk4_1	
+	12$
+		pha	
+		pla	
+		lda	#$04	
+	10$
+		bit	D_1800	
+		beq	10$	
+		nop	
+		nop	
+		nop	
+		lda	D_1800	
+		asl	A	
+		nop	
+		nop	
+		nop	
+		nop	
+		ora	D_1800	
+		and	#$0F	
+		tax	
+		nop	
+		nop	
+		nop	
+		lda	D_1800	
+		asl	A	
+		pha	
+		lda	z70	
+		pla	
+		ora	D_1800	
+		and	#$0F	
+		ora	DNibble2,X	
+		dey	
+		sta	(z73),Y	
+		bne	12$	
+	DRecvB2:
+		ldx	#$02	
+		stx	D_1800	
+		rts
+	DDunk4:
+		dec	z48	
+		bne	DDunk4_1	
+		jsr	DDunk8_2	
+	DDunk4_1:
+		LoadB	D_1805,#$C0
+	14$
+		bit	D_1805	
+		bpl	DDunk4	
+		lda	#$04	
+		bit	D_1800	
+		bne	14$	
+		LoadB	D_1800,#$00
+		rts
+	DDrvStart:
+		php	
+		sei	
+		PushB	z49
+		lda	D_180F	
+		and	#$DF	
+		sta	D_180F	
+		ldy	#$00	
+	16$
+		dey	
+		bne	16$	
+		jsr	DRecvB2	
+		lda	#4	
+	18$
+		bit	D_1800	
+		beq	18$	
+	DDrvLoop:
+		jsr	DDunk8	
+		LoadW	z73,#DExcAdd
+		jsr	DRecvWord	
+		jsr	DDunk8_1	
+		LoadB	z74,#$07
+		lda	#$00	
+	DExitTurbo:
+		sta	z73	
+		lda	#$03	
+		pha	
+		lda	#$FD	
+		pha	
+		jmp	(DExcAdd)	
+		jsr	DDunk4_1	
+		LoadB	z33,#$00
+		sta	D_1800	
+		jsr	D_F98F	
+		LoadB	D_1C0C,#$EC
+		pla	
+		pla	
+		PopB	z49
+		plp	
+		rts
+	DChngDev:
+		MoveB	DDatas,z77
+		eor	#$60	
+		sta	z78	
+		rts
+	DDunk5:
+		jsr	DDnk12	
+		lda	z22	
+		beq	20$	
+		ldx	$00	
+		dex	
+		beq	22$	
+	20$
+		PushB	z12
+		PushB	z13
+		jsr	J_04DF	
+		PopB	z13
+		tax	
+		PopB	z12
+		ldy	$00	
+		cpy	#$01	
+		bne	24$	
+		cpx	z17	
+		bne	26$	
+		cmp	z16	
+		bne	26$	
+		lda	#$00	
+	22$
+		pha	
+		lda	z22	
+		ldx	#$FF	
+		sec	
+		sbc	DDatas	
+		beq	28$	
+		bcs	30$	
+		eor	#$FF	
+		adc	#$01	
+		ldx	#$01	
+	30$
+		jsr	DDunk6	
+		MoveB	DDatas,z22
+		jsr	J_0518	
+	28$
+		pla	
+	24$
+		rts	
+	26$
+		LoadB	$00,#$0B
+		rts
+	DDunk6:
+		stx	z4A	
+		asl	A	
+		tay	
+		lda	D_1C00	
+		and	#$FE	
+		sta	z70	
+		LoadB	z71,#$1E
+	36$
+		lda	z70	
+		clc	
+		adc	z4A	
+		eor	z70	
+		and	#$03	
+		eor	z70	
+		sta	z70	
+		sta	D_1C00	
+		lda	z71	
+		jsr	DDunk6_4	
+		lda	z71	
+		cpy	#$05	
+		bcc	32$	
+		cmp	#$11	
+		bcc	34$	
+		sbc	#$02	
+		bne	34$	
+	32$
+		cmp	#$1C	
+		bcs	34$	
+		adc	#$04	
+	34$
+		sta	z71	
+		dey	
+		bne	36$	
+		lda	#$4B	
+	DDunk6_4:
+		sta	D_1805	
+	38$
+		lda	D_1805	
+		bne	38$	
+		rts
+	DNewDsk:
+		jsr	DDnk12	
+	DNewDsk1:
+		ldx	$00	
+		dex	
+		beq	DNewDsk2	
+		ldx	#$FF	
+		lda	#$01	
+		jsr	DDunk6	
+		ldx	#$01	
+		txa	
+		jsr	DDunk6	
+		lda	#$FF	
+		jsr	DDunk6_4	
+	DNewDsk2:
+		LoadB	z70,#$04
+	44$
+		jsr	DDnk11	
+		ldx	z18	
+		stx	z22	
+		ldy	$00	
+		dey	
+		beq	40$	
+		dec	z70	
+		bmi	42$	
+		ldx	z70	
+		jsr	DNewDsk7	
+		sec	
+		bcs	44$	
+	42$
+		LoadB	z22,#$00
+		rts	
+	40$
+		txa	
+	DNewDsk6:
+		jsr	J_F24B	
+		sta	z43	
+	DNewDsk7:
+		lda	D_1C00	
+		and	#$9F	
+		ora	DTrackTb,X	
+	DNewDsk8:
+		sta	D_1C00	
+		rts
+	DDunk8:
+		lda	#$F7	
+		bne	DDunk8_3	
+	DDunk8_1:
+		lda	#$08	
+		ora	D_1C00	
+		bne	DNewDsk8	
+	DDunk8_2:
+		LoadB	z20,#$00
+		LoadB	z3E,#$FF
+		lda	#$FB	
+	DDunk8_3		=*
+		and	D_1C00	
+		jmp	DNewDsk8	
+	DTrackTb:
+		.byte	$00,$20,$40,$60
+
+	DDunk9:
+		tax	
+		bit	z20	
+		bpl	48$	
+		jsr	DDnk12_1	
+		LoadB	z20,#$20
+		ldx	#0	
+	48$
+		cpx	z22	
+		beq	50$	
+		jsr	DNewDsk2	
+		cmp	#1	
+		bne	50$	
+		ldy	z19	
+		iny	
+		cpy	z43	
+		bcc	52$	
+		ldy	#0	
+	52$
+		sty	z19	
+		LoadB	z45,#$00
+		LoadW	z32,#z18
+		jsr	DDnk11_1	
+	50$
+		rts
+	DWrtSect:
+		jsr	DDunk5	
+		ldx	0	
+		dex	
+		bne	54$	
+		jsr	DDunk9	
+	54$
+		jsr	DRecvWord	
+		lda	#$10	
+		bne	DRdSect_1
+	DRdSect:
+		jsr	DDunk5	
+		lda	#0	
+	DRdSect_1		=*
+		ldx	$00	
+		dex	
+		beq	DDnk11_0	
+		rts
+	DDnk11:
+		lda	#$30	
+	DDnk11_0		=*
+		sta	z45	
+		LoadW	z32,#DDatas
+	DDnk11_1:
+		LoadB	z31,#$07
+		tsx	
+		stx	z49	
+		ldx	#1	
+		stx	$00	
+		dex	
+		stx	z3F	
+		LoadB	D_1C0C,#$EE
+		CmpBI	z45,#$10
+		beq	60$	
+		cmp	#$30	
+		beq	62$	
+		jmp	D_F4CA	
+	62$
+		jmp	D_F3B1	
+	60$
+		jsr	D_F5E9	
+		sta	z3A	
+		lda	D_1C00	
+		and	#$10	
+		bne	64$	
+		lda	#$08	
+		bne	66$	
+	64$
+		jsr	D_F78F	
+		jsr	D_F510	
+		ldx	#$09	
+	68$
+		bvc	68$	
+		clv	
+		dex	
+		bne	68$	
+		LoadB	D_1C03,#$FF
+		lda	D_1C0C	
+		and	#$1F	
+		ora	#$C0	
+		sta	D_1C0C	
+		lda	#$FF	
+		ldx	#$05	
+		sta	D_1C01	
+		clv
+	70$	bvc	70$			
+		clv	
+		dex	
+		bne	70$	
+		ldy	#$BB	
+	74$
+		lda	T_0100,Y	
+	72$
+		bvc	72$	
+		clv	
+		sta	D_1C01	
+		iny	
+		bne	74$	78$
+		lda	(z30),Y	
+	76$
+		bvc	76$	
+		clv	
+		sta	D_1C01	
+		iny	
+		bne	78$
+	80$
+		bvc	80$	
+		lda	D_1C0C	
+		ora	#$E0	
+		sta	D_1C0C	
+		LoadB	D_1C03,#$00
+		sta	z50	
+		lda	#$01	
+	66$
+		sta	$00	
+		rts
+	DDnk12:
+		lda	z20	
+		and	#$20	
+		bne	DDnk12_2	
+		jsr	D_F97E	
+	DDnk12_1:
+		ldy	#$80	
+	84$
+		dex	
+		bne	84$	
+		dey	
+		bne	84$	
+		sty	z3E	
+	DDnk12_2		=*
+		LoadB	z48,#$FF
+		rts
+	
+	DExcAdd:
+		.word	$0000	
+	DDatas:			;.Word is Located in Driver code
+				;Would be 2 bytes too long in storage if defined here.

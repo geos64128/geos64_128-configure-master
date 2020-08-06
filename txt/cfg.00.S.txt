@@ -1,0 +1,1473 @@
+.include APP.Inc		;0406	<=>      11BB			;31
+
+.if COMMENT
+
+Page  	Procedure	Description											;Address
+----	----------	-------------------------------------------------	---------
+8		LoadUI:		;Load Main Module. Does Icons/Menus/Graphics		;04EC
+13		InstDrvr:	;Install Driver at DISK_BASE						;0616
+15		LoadDrvr:	;Load Driver into Buffer							;0672
+20		CA_1541:	;Device 1541 Click Action							;07B7
+21		CA_1571:	;RAM 1571 Click Action								;07DF
+22		CA_1581:	;Device 1581 Click Action							;07EF
+23		CA_S1541:	;Shadowed 1541 Click Event							;07FF
+24		CA_S1581:	;Shadowed 1581 Click Action							;0820
+26		CA_R1571:	;RAM 1571 Click Event								;08A5
+27		CA_R1581:	;RAM 1581 Click Event								;08A5
+51		Reboot 		;Code that occurs on Ram Reboot at $6000			;115B
+
+.endif
+;Reverse Engineered by Paul B Murdaugh. 7/30/20 10:30PM - 8/3/20 12:05 AM
+;paulbmurdaugh@gmail.com
+
+	;Symbols into UI Module 1
+	InitUI	==	$1466
+	D_180C	==	$180C
+	J_1E05	==	$1E05
+
+.zsect
+
+.ramsect $13B1		;User Interface Gets Loaded Here
+	VLIR_Base:	.block	$D28		;13B1 - 20D8
+
+.ramsect $20D9
+	rCfgName:	.block	17			;20D9
+	T_20EA:	.block	8			;$20EA
+	T_20F2:	.block	8			;$20F2
+	r20FA:	.block	264				;$20FA	 -2202
+	;Many more equates in APP.sym to be converted to ramsect space.
+.psect	LoadAddress:					;0406
+	;Saved Configuration
+	Saved_8:
+		.byte	$03
+	Saved_9:
+		.byte	$83
+	Saved_10:
+		.byte	$03
+		.byte	$02
+	D_040A:
+		.byte	$E0
+
+	ProgStart:					;040B
+		jsr	J_047C
+		lda	firstBoot
+		cmp	#[TRUE
+		bne	04$
+		jmp	LoadUI
+	04$
+		bit	c128Flag
+		bmi	br06
+		MoveB	curDrive,bootDrv
+		tay
+		lda	driveNdxTyp,Y
+		sta	D_2105
+		jsr	J_0FB3
+		jsr	i_MoveData
+		.word	D_5000
+		.word	D_2150
+		.word	$0400
+		LoadB	numDrives,#1
+		jsr	J_0558
+	J_043E:
+		lda	bootDrv
+		jsr	J_073E
+		jsr	J_1081
+		jsr	J_0FA0
+		lda	ramExpSize
+		bne	08$
+		lda	numDrives
+		cmp	#2
+		bcc	08$
+		lda	driveType
+		cmp	D_848F
+		bne	10$
+		cmp	#3
+		bne	08$
+	10$
+		jsr	J_0739
+		jsr	PurgeTurbo
+		jsr	J_0739
+		LoadB	numDrives,#1
+	08$
+		jsr	i_MoveData
+		.word	D_2150
+		.word	D_5000
+		.word	$0400
+	br06					=*
+		jmp	EnterDeskTop	J_047C:
+		bit	c128Flag
+		bmi	90$
+		lda	version
+		cmp	#20
+		bcs	90$
+		jsr	J_04CC
+		jsr	J_048F
+	90$
+		rts	J_048F:
+		LoadW	r0,#K_C310
+		ldy	#0
+		sty	r1
+		jsr	J_04A2
+		LoadB	r1,#5
+	J_04A2:
+		ldx	r1
+	18$
+		lda	(r0),Y
+		cmp	T_04C2,X
+		beq	14$
+		cpx	r1
+		bne	J_04A2
+		iny
+		bne	J_04A2
+		rts
+	14$
+		iny
+		bne	16$
+		rts
+	16$
+		inx
+		lda	T_04C2,X
+		bne	18$
+		lda	#$34
+		sta	(r0),Y
+		rts	T_04C2:
+		lda	D_815C
+		cmp	#0
+		jsr	J_3156
+
+	B_04CA:
+		.byte	$2E,$00	J_04CC:
+		lda	version
+		cmp	#$13
+		bne	20$
+		MoveW	D_C2B1,r0
+		ldy	#0
+		lda	(r0),Y
+		cmp	#$EA
+		beq	20$
+		ldy	#3
+		lda	#$3D
+		sta	(r0),Y
+	20$
+		rts	LoadUI:	;Load UI Module. Does Icons/Menus/Graphics etc				;04EC
+		jsr	OpenCFG
+		txa
+		bne	90$
+		lda	#1
+		jsr	PointRecord
+		LoadW	r7,#VLIR_Base
+		LoadB	r2,#$FF		;Unlimited Load Size.
+		sta	r2H
+		jsr	ReadRecord
+		txa
+		bne	90$
+		jmp	InitUI
+	90$
+		jmp	EnterDeskTop	tClass:	.byte	"Configure   V2.1",NULL
+
+	OpenCFG:
+		ldx	#0
+		lda	D_06AC
+		bne	90$
+		LoadW	r6,#rCfgName		;20D9
+		LoadB	r7,#AUTO_EXEC
+		LoadB	r7H,#1
+		LoadW	r10,#tClass
+		jsr	FindFTypes
+		txa
+		bne	90$
+		LoadW	r0,#rCfgName
+		jsr	OpenRecordFile
+		LoadB	D_06AC,#[TRUE
+	90$
+		rts	J_0558:
+		jsr	ExitTurbo
+		lda	ramExpSize
+		beq	26$
+		lda	D_040A
+	26$
+		and	#%10100000			;$A0
+		sta	sysRAMFlg
+		sta	sysFlgCopy
+		lda	D_2105
+		cmp	#2
+		bcs	28$
+		jsr	J_0E64
+		cmp	#[TRUE
+		bne	28$
+		lda	#1
+	28$
+		sta	D_2106
+		lda	curDrive
+		eor	#%00000001			;$01
+		jsr	SetDevice
+		jsr	J_0E64
+		cmp	#[TRUE
+		bne	30$
+		lda	#0
+	30$
+		sta	D_2107
+		lda	ramExpSize
+		beq	32$
+		lda	#10
+		jsr	SetDevice
+		jsr	J_0E64
+		cmp	#[TRUE			;$FF
+		bne	34$
+	32$
+		lda	#0
+	34$
+		sta	D_2108
+		lda	bootDrv
+		jsr	SetDevice
+		jsr	J_06B2
+		jsr	J_064A
+		txa
+		bne	36$
+		jsr	PurgeTurbo
+		ldy	#3
+		LoadB	numDrives,#0
+	38$
+		sta	driveType,Y
+		sta	turboFlags,Y
+		sta	driveData,Y
+		sta	ramBase,Y
+		dey
+		bpl	38$
+		jsr	J_05F8
+		lda	D_2106
+		jsr	J_0769
+		lda	D_2107
+		beq	40$
+		jsr	J_0739
+		lda	D_2107
+		jsr	J_0769;continued
+	40$
+		lda	D_2108
+		beq	36$
+		lda	#10
+		jsr	J_073E
+		lda	D_2108
+		jsr	J_0769
+	36$
+		rts	J_05F8:
+		lda	ramExpSize
+		beq	42$
+		LoadB	D_212B,#8
+		MoveB	D_2106,D_212F
+	44$
+		jsr	J_09C8
+		inc	D_212B
+		lda	D_212B
+		cmp	#12
+		bne	44$
+	42$
+		rts	InstDrvr:	;Install Driver at DISK_BASE				;0616
+		ldy	curDrive
+		lda	driveNdxTyp,Y
+		beq	46$
+		tay
+		jsr	J_0A76
+		lda	T_06AD,Y
+		bne	46$
+		lda	#$FF
+		sta	T_06AD,Y
+		lda	T_0A64,Y
+		sta	r1
+		lda	T_0A69,Y
+		sta	r1H
+		LoadW	r0,#DISK_BASE
+		LoadW	r2,#DSKDRV_SZ
+		jsr	MoveData
+	46$
+		rts	J_064A:
+		lda	D_2106
+		jsr	LoadDrvr
+		bne	48$
+		lda	D_2107
+		jsr	LoadDrvr
+		bne	48$
+		lda	D_2108
+		jsr	LoadDrvr
+		bne	48$
+		ldx	#0
+		lda	D_06AC
+		beq	48$
+		jsr	CloseRecordFile
+		LoadB	D_06AC,#$00
+	48$
+		rts	LoadDrvr:	;Load Driver into Buffer				;0672
+		ldx	#0
+		tay
+		beq	50$
+		jsr	J_0A76
+		lda	T_06AD,Y
+		bne	50$
+		PushY
+		jsr	OpenCFG
+		PopY
+		txa
+		bne	50$
+		lda	#$FF
+		sta	T_06AD,Y
+		lda	T_0A64,Y
+		sta	r7
+		lda	T_0A69,Y
+		sta	r7H
+		tya
+		add	#2
+		jsr	PointRecord
+		LoadW	r2,#DSKDRV_SZ
+		jsr	ReadRecord
+	50$
+		txa
+		rts	D_06AC:
+		.byte	0
+	T_06AD:
+		.block	5
+
+	J_06B2:
+		LoadB	r0,#1
+		lda	bootDrv
+		eor	#%00000001			;$01
+		tay
+		lda	T_03FE,Y
+		ldx	D_2107
+		jsr	J_06EB
+		sta	D_2107
+		ldy	bootDrv
+		lda	T_03FE,Y
+		and	#%01111111			;$7F
+		ldx	D_2106
+		jsr	J_06EB
+		sta	D_2106
+		lda	ramExpSize
+		beq	52$
+		lda	Saved_10
+		ldx	D_2108
+		jsr	J_06EB
+	52$
+		sta	D_2108
+		rts	J_06EB:
+		stx	r2
+		sta	r2H
+		jsr	J_09AD
+		add	r0
+		cmp	ramExpSize
+		bcc	54$
+		beq	54$
+		lda	r2H
+		and	#%00111111			;$3F
+		sta	r2H
+		lda	r0
+	54$
+		sta	r0H
+		lda	r2H
+		bpl	56$
+		MoveB	r0H,r0
+		lda	r2H
+		rts
+	56$
+		and	#%00001111
+		cmp	#1
+		bne	58$
+		CmpBI	r2,#2
+		bne	58$
+		LoadB	r2,#1
+	58$
+		lda	r2H
+		and	#%01000000			;$40
+		beq	60$
+		lda	r2H
+		and	#%00001111			;$0F
+		cmp	r2
+		bne	60$
+		MoveB	r0H,r0
+		lda	r2H
+		rts
+	60$
+		lda	r2
+		rts	J_0739:
+		lda	curDrive
+		eor	#%00000001			;$01
+	J_073E:
+		jsr	SetDevice
+		txa
+		bne	99$
+		lda	ramExpSize
+		bne	20$
+		PushB	D_212F
+		ldy	curDrive
+		lda	driveNdxTyp,Y
+		beq	10$
+		sta	D_212F
+		jsr	J_09C8
+	10$
+		PopB	D_212F
+	20$
+		ldy	curDrive
+		lda	driveNdxTyp,Y
+		sta	curType
+	99$
+		rts	J_0769:
+		pha
+		LoadB	D_212C,#$00
+		MoveB	curDrive,D_212B
+		pla
+		beq	90$
+		cmp	#DRV_1541
+		bne	70$
+		jmp	CA_1541
+	70$
+		cmp	#DRV_1571
+		bne	72$
+		jmp	CA_1571
+	72$
+		cmp	#DRV_1581
+		bne	74$
+		jmp	CA_1581
+	74$
+		cmp	#DRV_S1541		;$41
+		bne	76$
+		jsr	CA_1541
+		jmp	CA_S1541
+	76$
+		cmp	#DRV_S1581		;$43
+		bne	78$
+		jsr	CA_1581
+		jmp	CA_S1581
+	78$
+		cmp	#DRV_R1541		;$81
+		bne	80$
+		jmp	J_0841
+	80$
+		cmp	#DRV_R1571		;$82
+		bne	82$
+		jmp	CA_R1571
+	82$
+		cmp	#DRV_R1581		;$83
+		bne	90$
+		jmp	CA_R1581
+	90$
+		rts	CA_1541:	;Device 1541 Click Action				;07B7
+		lda	D_212C
+		cmp	#DRV_1541
+		beq	90$
+		cmp	#DRV_S1541
+		bne	80$
+		ldy	D_212B
+		lda	#1
+		sta	driveNdxTyp,Y
+		sta	T_03FE,Y
+		lda	#0
+		sta	driveData,Y
+		dec	D_180C
+		rts
+	80$
+		LoadB	D_212F,#1
+		jmp	J_08D7
+	90$
+		rts	CA_1571:	;RAM 1571 Click Action				;07DF
+		lda	D_212C
+		cmp	#DRV_1571			;2
+		beq	90$
+		LoadB	D_212F,#DRV_1571
+		jmp	J_08D7
+	90$
+		rts	CA_1581:	;Device 1581 Click Action				;07EF
+		lda	D_212C
+		cmp	#DRV_1581		;3
+		beq	90$
+		LoadB	D_212F,#DRV_1581
+		jmp	J_08D7
+	90$
+		rts	CA_S1541:	;Shadowed 1541 Click Event			;07FF
+		lda	D_212C
+		cmp	#DRV_S1541
+		beq	92$
+		lda	#DRV_S1541
+		jsr	J_0911
+		ldy	D_212B
+		sta	driveData,Y
+		lda	#DRV_S1541			;$41
+		sta	driveNdxTyp,Y
+		sta	T_03FE,Y
+		jsr	NewDisk
+		dec	D_180C
+	92$
+		rts	CA_S1581:	;Shadowed 1581 Click Action				;0820
+		lda	D_212C
+		cmp	#DRV_S1581		;$43
+		beq	94$
+		lda	#DRV_S1581
+		jsr	J_0911
+		ldy	D_212B
+		sta	driveData,Y
+		lda	#DRV_S1581
+		sta	driveNdxTyp,Y
+		sta	T_03FE,Y
+		jsr	NewDisk
+		dec	D_180C
+	94$
+		rts	J_0841:
+		lda	D_212C
+		cmp	#DRV_R1541			;$81
+		beq	96$
+		LoadB	D_212F,#DRV_R1541
+		jsr	J_09C8
+		inc	numDrives
+		lda	#DRV_R1541
+		jsr	J_0911
+		ldy	D_212B
+		sta	driveData,Y
+		lda	#DRV_R1541
+		sta	driveNdxTyp,Y
+		sta	T_03FE,Y
+		lda	D_212B
+		jsr	J_073E
+		jsr	J_0A8A
+		dec	D_180C
+	96$
+		rts	CA_R1571:	;RAM 1571 Click Action				;08A5
+		lda	D_212C
+		cmp	#DRV_R1571			;$82
+		beq	98$
+		LoadB	D_212F,#DRV_R1571
+		jsr	J_09C8
+		inc	numDrives
+		lda	#DRV_R1571
+		jsr	J_0911
+		ldy	D_212B
+		sta	driveData,Y
+		lda	#DRV_R1571
+		sta	driveNdxTyp,Y
+		sta	T_03FE,Y
+		lda	D_212B
+		jsr	J_073E
+		jsr	J_0A8A
+		dec	D_180C
+	98$
+		rts	CA_R1581:	;RAM 1581 Click Action			;08A5
+		lda	D_212C
+		cmp	#DRV_R1581			;$83
+		beq	02$
+		LoadB	D_212F,#DRV_R1581
+		jsr	J_09C8
+		inc	numDrives
+		lda	#DRV_R1581
+		jsr	J_0911
+		ldy	D_212B
+		sta	driveData,Y
+		lda	#DRV_R1581
+		sta	driveNdxTyp,Y
+		sta	T_03FE,Y
+		lda	D_212B
+		jsr	J_073E
+		jsr	J_0A8A
+		dec	D_180C
+	02$
+		rts	J_08D7:
+		jsr	J_09C8
+		lda	D_212B
+		jsr	J_073E
+		lda	firstBoot
+		cmp	#[TRUE
+		beq	04$
+		ldy	D_212B
+		lda	D_212F
+		sta	driveNdxTyp,Y
+		inc	numDrives
+		bra	06$
+	04$
+		jsr	J_1E05
+		lda	D_212B
+		jsr	J_073E
+	06$
+		dec	D_180C
+		ldy	D_212B
+		lda	driveNdxTyp,Y
+		sta	T_03FE,Y
+		lda	#0
+		sta	driveData,Y
+		rts	J_0911:
+		pha
+		jsr	J_0977
+		PopB	r0
+		lda	D_212C
+		and	#%11000000			;$C0
+		bne	08$
+		lda	r0
+		jsr	J_09AD
+		cmp	#1
+		beq	10$
+		bne	12$
+	08$
+		ldy	D_212B
+		lda	driveData,Y
+		ldx	#FALSE
+		rts
+	10$
+		ldy	ramExpSize
+	16$
+		dey
+		bmi	14$
+		lda	T_2130,Y
+		bne	16$
+		tya
+		ldx	#FALSE
+		rts
+	14$
+		ldx	#[TRUE
+		rts
+	12$
+		sta	r0
+		ldy	#0
+	24$
+		MoveB	r0,r0H
+	20$
+		sty	r1
+		cpy	ramExpSize
+		bcs	18$
+		lda	T_2130,Y
+		iny
+		cmp	#0
+		bne	20$
+	26$
+		dec	r0H
+		beq	22$
+		cpy	ramExpSize
+		bcs	18$
+		lda	T_2130,Y
+		iny
+		cmp	#0
+		bne	24$
+		beq	26$
+	22$
+		lda	r1
+		ldx	#FALSE
+		rts
+	18$
+		ldx	#[TRUE
+		rts	J_0977:
+		ldy	#$1F
+		lda	#0
+	28$
+		sta	T_2130,Y
+		dey
+		bpl	28$
+		LoadB	T_2130,#[TRUE
+		LoadB	r0,#8
+	34$
+		ldy	r0
+		lda	driveNdxTyp,Y
+		jsr	J_09AD
+		tax
+		beq	30$
+		ldy	r0
+		lda	driveData,Y
+		tay
+	32$
+		lda	#$FF
+		sta	T_2130,Y
+		iny
+		dex
+		bne	32$
+	30$
+		inc	r0
+		CmpBI	r0,#12
+		bcc	34$
+		rts	J_09AD:
+		sta	r0H
+		and	#$C0
+		beq	36$
+		CmpBI	r0H,#$83
+		bne	38$
+		add	#1
+	38$
+		and	#%00001111			;$0F
+		tay
+		lda	T_09C3,Y
+	36$
+		rts	T_09C3:
+		.byte	$03,$03,$06,$01,$0D
+
+	J_09C8:
+		lda	ramExpSize
+		bne	40$
+		lda	sysRAMFlg
+		and	#%10111111			;$BF
+		sta	sysRAMFlg
+		sta	sysFlgCopy
+		sta	D_040A
+		ldy	D_212F
+		lda	D_212B
+		jsr	J_0A3D
+		LoadW	r1,#DISK_BASE
+		jsr	MoveData
+		rts
+	40$
+		lda	sysRAMFlg
+		ora	#%01000000			;$40
+		sta	sysRAMFlg
+		sta	sysFlgCopy
+		sta	D_040A
+		ldy	driveType
+		beq	42$
+		lda	#8
+		jsr	J_0A3D
+		jsr	StashRAM
+	42$
+		ldy	D_848F
+		beq	44$
+		lda	#9
+		jsr	J_0A3D
+		jsr	StashRAM
+	44$
+		ldy	D_8490
+		beq	46$
+		lda	#10
+		jsr	J_0A3D
+		jsr	StashRAM
+	46$
+		ldy	D_212F
+		lda	D_212B
+		jsr	J_0A3D
+		jsr	StashRAM
+		LoadW	r1,#DISK_BASE
+		jsr	MoveData
+		rts	J_0A3D:
+		pha
+		jsr	J_0A76
+		lda	T_0A64,Y
+		sta	r0
+		lda	T_0A69,Y
+		sta	r0H
+		PopY
+		lda	T_0A66,Y
+		sta	r1
+		lda	T_0A6A,Y
+		sta	r1H
+		LoadW	r2,#DSKDRV_SZ
+		LoadB	r3,#BANK_0
+		rts	T_0A64:
+		.byte	<D_3C80
+		.byte	<D_4A00
+	T_0A66:
+		.byte	<D_5780
+		.byte	<D_6500
+		.byte	<D_7280
+	T_0A69:
+		.byte	>D_3C80
+	T_0A6A:
+		.byte	>D_4A00
+		.byte	>D_5780
+		.byte	>D_6500
+		.byte	>D_7280
+
+		.byte	$00,$80,$00,$80,$83,$90,$9E,$AB
+
+	J_0A76:
+		tya
+		bpl	80$
+		cmp	#DRV_R1581
+		beq	50$
+		ldy	#DRV_1581
+		bne	90$
+	50$
+		ldy	#4
+		bne	90$
+	80$
+		and	#%00001111			;$0F
+		tay
+		dey
+	90$
+		rts	J_0A8A:
+		ldy	D_212B
+		lda	driveNdxTyp,Y
+		and	#%00001111			;$0F
+		cmp	#3
+		bcc	54$
+		jmp	J_0C8E
+	54$
+		ldy	#0
+		tya
+	56$
+		sta	curDirHead,Y
+		iny
+		bne	56$
+		LoadB	D_0BBB,#$34
+		LoadB	D_0B28,#$00
+		ldy	curDrive
+		lda	driveNdxTyp,Y
+		and	#%00001111			;$0F
+		ldy	#$BD
+		cmp	#DRV_1541			;1
+		beq	58$
+		ldy	#0
+		LoadB	D_0BBB,#$37
+		LoadB	D_0B28,#$80
+	58$
+		dey
+		lda	T_0B25,Y
+		sta	curDirHead,Y
+		tya
+		bne	58$
+		ldy	curDrive
+		lda	driveNdxTyp,Y
+		and	#%00001111			;$0F
+		cmp	#DRV_1541			;1
+		beq	60$
+		ldy	#0
+		tya
+	62$
+		sta	dir2Head,Y
+		iny
+		bne	62$
+		ldy	#$69
+	64$
+		dey
+		lda	T_0C25,Y
+		sta	dir2Head,Y
+		tya
+		bne	64$
+	60$
+		jsr	PutDirHead
+		jsr	J_0B1B
+		LoadB	diskBlkBuf+1,#$FF
+		LoadW	r4,#diskBlkBuf
+		LoadB	r1,#$12
+		LoadB	r1H,#$01
+		jsr	PutBlock
+		inc	r1
+		LoadB	r1H,#$08
+		jsr	PutBlock
+		lda	#FALSE
+		rts	J_0B1B:
+		ldy	#0
+		tya
+	66$
+		sta	diskBlkBuf,Y
+		dey
+		bne	66$
+		rts	T_0B25:
+		.byte	$12,$01,$41
+	D_0B28:
+		.byte	$00,$15,$FF,$FF,$1F,$15,$FF,$FF
+		.byte	$1F,$15,$FF,$FF,$1F,$15,$FF,$FF
+		.byte	$1F,$15,$FF,$FF,$1F,$15,$FF,$FF
+		.byte	$1F,$15,$FF,$FF,$1F,$15,$FF,$FF
+		.byte	$1F,$15,$FF,$FF,$1F,$15,$FF,$FF
+		.byte	$1F,$15,$FF,$FF,$1F,$15,$FF,$FF
+		.byte	$1F,$15,$FF,$FF,$1F,$15,$FF,$FF
+		.byte	$1F,$15,$FF,$FF,$1F,$15,$FF,$FF
+		.byte	$1F,$15,$FF,$FF,$1F,$11,$FC,$FF
+		.byte	$07,$12,$FF,$FE,$07,$13,$FF,$FF
+		.byte	$07,$13,$FF,$FF,$07,$13,$FF,$FF
+		.byte	$07,$13,$FF,$FF,$07,$13,$FF,$FF
+		.byte	$07,$12,$FF,$FF,$03,$12,$FF,$FF
+		.byte	$03,$12,$FF,$FF,$03,$12,$FF,$FF
+		.byte	$03,$12,$FF,$FF,$03,$12,$FF,$FF
+		.byte	$03,$11,$FF,$FF,$01,$11,$FF,$FF
+		.byte	$01,$11,$FF,$FF,$01,$11,$FF,$FF
+		.byte	$01,$11,$FF,$FF,$01
+		.byte	"RAM 15"
+	D_0BBB:
+		.byte	"71",$A0,$A0,$A0,$A0,$A0,$A0	;
+		.byte	$A0,$A0,$A0,$A0,$52,$44,$A0,$32	;    RD 2
+		.byte	$41,$A0,$A0,$A0,$A0,$13,$08	;A
+		.byte	"GEOS format V1.0"
+		.block	32
+		.byte	$15,$15,$15,$15,$15,$15,$15,$15
+		.byte	$15,$15,$15,$15,$15,$15,$15,$15
+		.byte	$15,$00,$13,$13,$13,$13,$13,$13
+		.byte	$12,$12,$12,$12,$12,$12,$11,$11
+		.byte	$11,$11,$11
+	T_0C25:
+		.byte	$FF,$FF,$1F,$FF,$FF,$1F,$FF,$FF
+		.byte	$1F,$FF,$FF,$1F,$FF,$FF,$1F,$FF
+		.byte	$FF,$1F,$FF,$FF,$1F,$FF,$FF,$1F
+		.byte	$FF,$FF,$1F,$FF,$FF,$1F,$FF,$FF
+		.byte	$1F,$FF,$FF,$1F,$FF,$FF,$1F,$FF
+		.byte	$FF,$1F,$FF,$FF,$1F,$FF,$FF,$1F
+		.byte	$FF,$FF,$1F,$00,$00,$00,$FF,$FF
+		.byte	$07,$FF,$FF,$07,$FF,$FF,$07,$FF
+		.byte	$FF,$07,$FF,$FF,$07,$FF,$FF,$07
+		.byte	$FF,$FF,$03,$FF,$FF,$03,$FF,$FF
+		.byte	$03,$FF,$FF,$03,$FF,$FF,$03,$FF
+		.byte	$FF,$03,$FF,$FF,$01,$FF,$FF,$01
+		.byte	$FF,$FF,$01,$FF,$FF,$01,$FF,$FF
+		.byte	$01	J_0C8E:
+		ldy	#0
+		tya
+	68$
+		sta	curDirHead,Y
+		iny
+		bne	68$
+		LoadB	curDirHead,#$28
+		LoadB	frstDirSector,#$03
+		LoadB	diskFormat,#$44
+		ldy	#$2D
+	70$
+		lda	T_0D36,Y
+		sta	diskName,Y
+		dey
+		bpl	70$
+		LoadB	r1,#$28
+		LoadB	r1H,#$00
+		LoadW	r4,#curDirHead
+		jsr	PutBlock
+		ldy	#$00
+	72$
+		lda	T_0D64,Y
+		sta	dir2Head,Y
+		iny
+		bne	72$
+		LoadB	r1,#$28
+		LoadB	r1H,#$01
+		LoadW	r4,#dir2Head
+		jsr	PutBlock
+		LoadW	dir2Head,#MMUreg
+		LoadB	D_89FA,#$28
+		LoadB	D_89FB,#$FF
+		LoadB	D_89FD,#$FF
+		LoadB	r1,#$28
+		LoadB	r1H,#$02
+		LoadW	r4,#dir2Head
+		jsr	PutBlock
+		jsr	GetDirHead
+		jsr	J_0B1B
+		LoadB	diskBlkBuf+1,#$FF
+		LoadW	r4,#diskBlkBuf
+		LoadB	r1,#$28
+		LoadB	r1H,#$03
+		jsr	PutBlock
+		LoadB	r1H,#$13
+		jsr	PutBlock
+		lda	#FALSE
+		rts	T_0D36:
+		.byte	"RAM 1581"
+		.byte	$A0,$A0,$A0,$A0,$A0,$A0,$A0,$A0
+		.byte	$A0,$A0
+		.byte	"RD"
+		.byte	$A0
+		.byte	"3D"
+		.byte	$A0,$A0,$00,$00,$28,$13
+		.byte	"GEOS format V1.0",NULL
+	T_0D64:
+		.byte	$28,$02,$44,$BB,$45,$41,$C0,$00	;(.D;EA@.
+		.byte	$00,$00,$00,$00,$00,$00,$00,$00
+		.byte	$28,$FF,$FF,$FF,$FF,$FF,$28,$FF
+		.byte	$FF,$FF,$FF,$FF,$28,$FF,$FF,$FF
+		.byte	$FF,$FF,$28,$FF,$FF,$FF,$FF,$FF
+		.byte	$28,$FF,$FF,$FF,$FF,$FF,$28,$FF
+		.byte	$FF,$FF,$FF,$FF,$28,$FF,$FF,$FF
+		.byte	$FF,$FF,$28,$FF,$FF,$FF,$FF,$FF
+		.byte	$28,$FF,$FF,$FF,$FF,$FF,$28,$FF
+		.byte	$FF,$FF,$FF,$FF,$28,$FF,$FF,$FF
+		.byte	$FF,$FF,$28,$FF,$FF,$FF,$FF,$FF
+		.byte	$28,$FF,$FF,$FF,$FF,$FF,$28,$FF
+		.byte	$FF,$FF,$FF,$FF,$28,$FF,$FF,$FF
+		.byte	$FF,$FF,$28,$FF,$FF,$FF,$FF,$FF
+		.byte	$28,$FF,$FF,$FF,$FF,$FF,$28,$FF
+		.byte	$FF,$FF,$FF,$FF,$28,$FF,$FF,$FF
+		.byte	$FF,$FF,$28,$FF,$FF,$FF,$FF,$FF
+		.byte	$28,$FF,$FF,$FF,$FF,$FF,$28,$FF
+		.byte	$FF,$FF,$FF,$FF,$28,$FF,$FF,$FF
+		.byte	$FF,$FF,$28,$FF,$FF,$FF,$FF,$FF
+		.byte	$28,$FF,$FF,$FF,$FF,$FF,$28,$FF
+		.byte	$FF,$FF,$FF,$FF,$28,$FF,$FF,$FF
+		.byte	$FF,$FF,$28,$FF,$FF,$FF,$FF,$FF
+		.byte	$28,$FF,$FF,$FF,$FF,$FF,$28,$FF
+		.byte	$FF,$FF,$FF,$FF,$28,$FF,$FF,$FF
+		.byte	$FF,$FF,$28,$FF,$FF,$FF,$FF,$FF
+		.byte	$28,$FF,$FF,$FF,$FF,$FF,$28,$FF
+		.byte	$FF,$FF,$FF,$FF,$28,$FF,$FF,$FF
+		.byte	$FF,$FF,$28,$FF,$FF,$FF,$FF,$FF
+		.byte	$28,$FF,$FF,$FF,$FF,$FF,$28,$FF
+		.byte	$FF,$FF,$FF,$FF,$28,$FF,$FF,$FF
+		.byte	$FF,$FF,$23,$F0,$FF,$F7,$FF,$FF	J_0E64:
+		LoadW	r0,#$E580
+		jsr	J_0EA0
+		cpx	#0
+		bne	74$
+		cmp	#0
+		bne	74$
+		LoadW	r0,#$A6C0
+		jsr	J_0EA0
+	74$
+		cpx	#0
+		bne	76$
+		tax
+		lda	#1
+		cpx	#$41
+		beq	78$
+		lda	#2
+		cpx	#$71
+		beq	78$
+		lda	#3
+		cpx	#$81
+		beq	78$
+		lda	#[TRUE
+		bne	78$
+	76$
+		lda	#FALSE
+	78$
+		rts
+	J_0EA0:
+		jsr	J_0EF5
+		LoadW	r2,#$0100
+	90$
+		jsr	J_0F05
+		cpx	#0
+		bne	80$
+		cmp	#$31
+		bne	82$
+		jsr	J_0F05
+		cmp	#$35
+		bne	82$
+		jsr	J_0F05
+		sta	r1
+		and	#%01110000			;$70
+		cmp	#$30
+		bne	82$
+		lda	r1
+		asl	A
+		asl	A
+		asl	A
+		asl	A
+		sta	r1
+		jsr	J_0F05
+		sta	r1H
+		and	#%01110000			;$70
+		cmp	#$30
+		bne	82$
+		lda	r1H
+		and	#%00001111			;$0F
+		ora	r1
+		ldx	#FALSE
+		rts
+	82$
+		DecW	r2
+		lda	r2
+		ora	r2H
+		bne	90$
+		ldx	#FALSE
+	80$
+		rts	J_0EF5:
+		MoveW	r0,D_0F71
+		LoadB	D_2109,#32
+		rts	J_0F05:
+		ldy	D_2109
+		cpy	#32
+		bcs	86$
+		lda	T_210A,Y
+		inc	D_2109
+		ldx	#FALSE
+		rts
+	86$
+		jsr	InitForIO
+		LoadW	r0,#D_0F6E
+		jsr	J_0F74
+		beq	88$
+		jsr	DoneWithIO
+		rts
+	88$
+		jsr	Unlsn
+		lda	curDrive
+		jsr	Talk
+		lda	#$FF
+		jsr	Tksa
+		ldy	#0
+	90$
+		jsr	Acptr
+		sta	T_210A,Y
+		iny
+		cpy	#32
+		bcc	90$
+		jsr	Untlk
+		lda	curDrive
+		jsr	Listen
+		lda	#$EF
+		jsr	Second
+		jsr	Unlsn
+		jsr	DoneWithIO
+		LoadB	D_2109,#$00
+		AddVW	32,D_0F71
+		bra	J_0F05	D_0F6E:	.byte	"M-R"
+	D_0F71:
+		.byte	0
+	D_0F72:
+		.byte	$00,$20
+
+	J_0F74:	lda	#0
+		sta	STATUS
+		lda	curDrive
+		jsr	Listen
+		bit	STATUS
+		bmi	94$
+		lda	#$FF
+		jsr	Second
+		bit	STATUS
+		bmi	94$
+		ldy	#0
+	96$
+		lda	(r0),Y
+		jsr	Ciout
+		iny
+		cpy	#6
+		bcc	96$
+		ldx	#0
+		rts
+	94$
+		jsr	Unlsn
+		ldx	#$0D
+		rts	J_0FA0:
+		LoadB	numDrives,#0
+		ldy	#1
+	02$
+		lda	driveType,Y
+		beq	98$
+		inc	numDrives
+	98$
+		dey
+		bpl	02$
+		rts	J_0FB3:
+		jsr	InitForIO
+		LoadB	ramExpSize,#0
+		LoadB	D_2102,#2
+		lda	EXP_BASE
+		and	#%00010000			;$10
+		beq	04$
+		LoadB	D_2102,#32
+	04$
+		lda	EXP_BASE
+		and	#%11100000			;$E0
+		bne	06$
+		LoadB	D_DF02,#$55
+		cmp	D_DF02
+		bne	06$
+		LoadB	D_DF02,#$AA
+		ldy	#0
+	08$
+		dey
+		bne	08$
+		cmp	D_DF02
+		bne	06$
+		LoadB	ramExpSize,#1
+		LoadB	r3,#0
+	12$
+		jsr	J_1010
+		bcc	10$
+		lda	ramExpSize
+		cmp	D_2102
+		beq	06$
+		inc	ramExpSize
+		inc	r3
+		bra	12$
+	10$
+		dec	ramExpSize
+	06$
+		jmp	DoneWithIO	J_1010:
+		LoadW	r0,#r20FA
+		LoadB	r1,#$00
+		sta	r1H
+		LoadW	r2,#8
+		jsr	FetchRAM
+		LoadW	r0,#tRAMChk
+		jsr	StashRAM
+		LoadW	r0,#T_20EA
+		jsr	FetchRAM
+		PushB	r3
+		LoadB	r3,#0
+		LoadW	r0,#T_20F2
+		jsr	FetchRAM
+		PopB	r3
+		LoadW	r0,#r20FA
+		jsr	StashRAM
+		ldy	#7
+	18$
+		lda	tRAMChk,Y
+		cmp	T_20EA,Y
+		bne	14$
+		ldx	r3
+		beq	16$
+		cmp	T_20F2,Y
+		beq	14$
+	16$
+		dey
+		bpl	18$
+		sec
+		rts
+	14$
+		clc
+		rts	tRAMChk:					;1079
+		.byte	"RAMCheck"
+
+	J_1081:
+		lda	sysRAMFlg
+		and	#%00100000			;$20
+		beq	20$
+		lda	bootDrv
+		jsr	J_073E
+		jsr	J_1095
+		jsr	J_1145
+	20$
+		rts	J_1095:
+		jsr	ZeroLPtrs
+		LoadB	r0H,#]dirEntryBuf
+		LoadB	r1H,#]RE0_7900
+		LoadB	r2H,#5
+		jsr	StashRAM
+		;---
+		bit	sysRAMFlg
+		bvs	22$
+		;---
+		jsr	ZeroLPtrs
+		LoadB	r0H,#]DISK_BASE
+		LoadB	r1H,#]RE0_8300
+		LoadW	r2,#DSKDRV_SZ
+		jsr	StashRAM
+	22$
+		jsr	ZeroLPtrs		;Stash 9D80-9FFF
+		LoadB	r0,#$80
+		sta	r2
+		LoadB	r0H,#]K_9D80
+		LoadB	r1H,#]RE0_B900	;to REU 0-B900
+		LoadW	r2H,#2
+		jsr	StashRAM
+		;---
+		jsr	ZeroLPtrs
+		LoadW	r0,#K_BF40
+		LoadW	r1,#RE0_BB80
+		LoadW	r2,#$10C0
+		jsr	StashRAM
+		;---
+		LoadB	r4,#$30
+		LoadW	r5,#K_D000
+		LoadW	r0,#diskBlkBuf
+		LoadW	r1,#RE0_CC40
+		LoadW	r2,#$0100
+		LoadB	r3,#0
+	26$
+		ldy	#0
+	24$
+		lda	(r5),Y
+		sta	diskBlkBuf,Y
+		iny
+		bne	24$
+		jsr	StashRAM
+		inc	r5H
+		inc	r1H
+		dec	r4
+		bne	26$
+		rts
+
+	ZeroLPtrs:					;113A
+		LoadB	r0,#0
+		sta	r1
+		sta	r2
+		sta	r3
+		rts	J_1145:
+		jsr	ZeroLPtrs
+		LoadB	r1H,#]RE0_7E00		;
+		LoadB	r2H,#5		;$500 bytes
+		LoadW	r0,#R_115B
+		jmp	StashRAM.if COMMENT
+Rboot Fetch Sequence
+RE0_8300	0D80	K_9000	Boot Disk Driver (Always Drive 8)
+RE0_B900	$280	K_9D80	JmpIndx
+RE0_BB80	C0	K_BF40	Start of GEOS Kernal
+RE0_BCC0	$0F80	K_C080	Kernal
+RE0_CC40	$3000	K_D000	Kernal
+
+RE0_798E	4	Drive Types
+RE0_7A16	3	Year/Month/Day
+RE0_7DC3	2	Ram Exp Size
+RE0_7DC7	4	RamBanks for each Drive
+RE0_7E00	$500
+RE0_8300
+.endif
+	;The Remaining blocks are Stashed into the REU at 7E00
+	;When a Ram Reboot starts this code is fetched to $6000.
+	;This code cannot be changed without manualy recalculating the jsr address to
+	;RBFetchRAM; Next version of geoProgrammer will be able to set psect address's
+	;so inset blocks like this will work like any other.
+	;Best way to changes here with
+	;geoProgrammer as is, would be to start this with a single bra entry then RBStashRam
+	;then the remainder of the code. That would make the entire reboot code relocatable
+	;with no recompile/relink needed.
+	R_115B:
+	RB_6000:					;115B
+		sei
+		cld
+		ldx	#$FF
+		txs
+	Stage1:	;Get Kernal and Driver into Memory
+		;---	Load Disk Driver		;R6005
+		LoadB	CPU_DATA,#$30
+		LoadW	r0,#DISK_BASE	;9000
+		LoadW	r1,#RE0_8300
+		LoadW	r2,#DSKDRV_SZ
+		jsr	RBFetchRAM
+		;---	Start Loading in Kernal		;R6024
+		LoadW	r0,#JmpIndX		;9D80
+		LoadW	r1,#RE0_B900
+		LoadW	r2,#$0280
+		;---	... Kernal			;R603F
+		jsr	RBFetchRAM
+		LoadW	r0,#K_BF40
+		LoadW	r1,#RE0_BB80
+		LoadW	r2,#$00C0
+		jsr	RBFetchRAM
+		;---	... Kernal			;R605A
+		LoadW	r0,#K_C080
+		LoadW	r1,#RE0_BCC0
+		LoadW	r2,#$0F80
+		jsr	RBFetchRAM
+		;---	Load Kernal that is behind I/O at D000
+		LoadB	r4,#$30
+		LoadW	r5,#K_D000
+		LoadW	r0,#diskBlkBuf
+		LoadW	r1,#RE0_CC40
+	bb1:	LoadW	r2,#$0100
+		;---	Fetch it 1 $100 Block at a time.
+	30$
+		jsr	RBFetchRAM
+		ldy	#0
+	28$
+		lda	diskBlkBuf,Y
+		sta	(r5),Y
+		iny
+		bne	28$
+		inc	r5H
+		inc	r1H
+		dec	r4
+		bne	30$	Stage2:	;---	Initialize Memory
+		jsr	i_FillRam
+		.word	$0500
+		.word	dirEntryBuf
+		.byte	0
+
+		LoadB	r0,#[SCREEN_BASE
+		LoadB	r0H,#]SCREEN_BASE		;A000
+
+		;Draw Pattern 2 to the Screen.
+		ldx	#$7D
+	36$
+		ldy	#$3F
+	32$
+		lda	#$55
+		sta	(r0),Y
+		dey
+		lda	#$AA
+		sta	(r0),Y
+		dey
+		bpl	32$
+		lda	r0		;AddVW	$40,r0
+		clc			;Macro Order Wrong
+		adc	#$40
+		sta	r0
+		bcc	34$
+		inc	r0H
+	34$
+		dex
+		bne	36$	Stage3:	;Retreive Final Pieces for Boot		;1237
+		jsr	FirstInit
+		LoadB	firstBoot,#[TRUE
+		jsr	InitMouse
+		;--
+		LoadW	r0,#ramExpSize
+		LoadW	r1,#RE0_7DC3
+		LoadW	r2,#2
+		jsr	RBFetchRAM
+		;--
+		MoveB	sysFlgCopy,sysRAMFlg
+		LoadW	r0,#year		;8516
+		LoadW	r1,#RE0_7A16
+		LoadW	r2,#3
+		LoadB	r3,#BANK_0
+		jsr	FetchRAM
+		;--
+		MoveB	D_DC08,D_DC08
+		LoadW	r0,#driveType
+		LoadW	r1,#RE0_798E
+		LoadW	r2,#4
+		jsr	FetchRAM
+		;--
+		LoadW	r0,#ramBase		;88C7
+		LoadW	r1,#RE0_7DC7
+		LoadW	r2,#4
+		jsr	FetchRAM
+		;--
+		LoadW	r0,#PrntFilename
+		LoadW	r1,#RE0_7965
+		LoadW	r2,#17
+		jsr	FetchRAM
+		;--
+		LoadW	r0,#inpDevName
+		LoadW	r1,#RE0_7DCB
+		LoadW	r2,#17
+		jsr	FetchRAM
+		;--
+		LoadW	r0,#curDrive
+		LoadW	r1,#RE0_7989
+		LoadW	r2,#1
+		jsr	FetchRAM	LastStage:
+		jsr	InitForIO
+		LoadB	r0,#4
+	40$
+		ldy	#0
+		ldx	#0
+	38$
+		dey
+		bne	38$
+		dex
+		bne	38$
+		dec	r0
+		bne	40$
+		jsr	DoneWithIO
+		PushB	curDrive
+		LoadB	curDrive,#11
+		sta	curDevice
+		LoadB	numDrives,#0
+		sta	curDevice
+		LoadB	interleave,#8
+		jsr	SetDevice
+		LoadB	D_2103,#8
+	46$
+		ldy	D_2103
+		lda	driveNdxTyp,Y
+		beq	42$
+		cpy	#10
+		bcs	44$
+		inc	numDrives
+	44$
+		lda	D_2103
+		jsr	SetDevice
+		jsr	NewDisk
+	42$
+		inc	D_2103
+		lda	D_2103
+		cmp	#12
+		bcc	46$
+		beq	46$
+		pla
+		jsr	SetDevice
+		jmp	EnterDeskTop	RBFetchRAM					==$6216
+	RB_6216:					;1371
+		ldy	#$91
+		ldx	CPU_DATA
+		LoadB	CPU_DATA,#$35
+		MoveW	r0,D_DF02
+		MoveW	r1,D_DF04
+		LoadB	D_DF06,#0
+		MoveW	r2,D_DF07
+		LoadB	D_DF09,#0
+		sta	D_DF0A
+		sty	D_DF01
+	48$
+		lda	EXP_BASE
+		and	#%01100000			;$60
+		beq	48$
+		stx	CPU_DATA
+		rts					;13B0

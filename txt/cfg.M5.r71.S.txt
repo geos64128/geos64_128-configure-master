@@ -1,0 +1,813 @@
+.include APP.inc		;9000	<=>     $9729				;Last Page 38
+;Reverse Engineered by Paul B Murdaugh. 7/30/20 10:30PM - 8/3/20 12:05 AM
+	xDISK_BASE:
+		.word	bInitForIO	
+		.word	dDoneWithIO	
+		.word	dExitTurbo	
+		.word	dExitTurbo	
+		.word	dEnterTurbo	
+		.word	dChangeDiskDev	
+		.word	dNewDisk	
+		.word	dReadBlock	
+		.word	dWriteBlock	
+		.word	dVerWrtBlck	
+		.word	dOpenDisk	
+		.word	dGetBlock	
+		.word	dPutBlock	
+		.word	dGetDirHead	
+		.word	dPutDirHead	
+		.word	dGetFreeDirBlk	
+		.word	dCalcBlksFree	
+		.word	dFreeBlock	
+		.word	dSetNextFree	
+		.word	dFindBamBit	
+		.word	dNxtBlkAlloc	
+		.word	dBlkAlloc	
+		.word	dChkDkGeos	
+		.word	dSetGEOSDisk	
+	xGet1stDirEntry:
+		jmp	dGet1stDirEntry	
+	xGetNxtDirEntry:
+		jmp	dGetNxtDirEntry	
+	xGetOPDPtr:
+		jmp	dGetBorder	
+	xAddDirBlock:
+		jmp	dAddDirBlock	
+	xGetDiskBlkBuf:
+		jmp	dReadBuff	
+	xPutDiskBlkBuf:
+		jmp	dWriteBuff	
+	xCallDrvRout:
+		nop	
+		nop	
+		rts	
+	xCheckDrvSttus:
+		nop	
+		nop	
+		rts	
+	xAllocateBlock:
+		jmp	dAllocateBlock	
+	xReadLink:
+		jmp	dReadLink
+	drvType:
+		.byte	DRV_R1571
+
+	dGetDirHead:
+		jsr	SetDirHead	
+		jsr	dGetBlock	
+		txa	
+		bne	02$	
+		ldy	curDrive	
+		lda	D_8203	
+		sta	T_88B7,Y	
+		bpl	02$	
+		jsr	SetDHd_2	
+		jsr	dGetBlock	
+		LoadB	interleave,#$06
+		rts	
+	02$
+		LoadB	interleave,#$08
+		rts
+	dReadBuff:
+		LoadW	r4,#diskBlkBuf
+	dGetBlock:
+		jsr	EnterTurbo	
+		txa	
+		bne	04$	
+		php	
+		sei	
+		jsr	ReadBlock	
+		plp	
+	04$
+		rts
+	dPutDirHead:
+		php	
+		sei	
+		jsr	SetDirHead	
+		jsr	WriteBlock	
+		txa	
+		bne	06$	
+		ldy	curDrive	
+		lda	D_8203	
+		sta	T_88B7,Y	
+		bpl	06$	
+		jsr	SetDHd_2	
+		jsr	WriteBlock	
+	06$
+		plp	
+		rts
+	dWriteBuff:
+		LoadW	r4,#diskBlkBuf
+	dPutBlock:
+		jsr	EnterTurbo	
+		txa	
+		bne	08$	
+		php	
+		sei	
+		jsr	WriteBlock	
+		txa	
+		bne	10$	
+		jsr	VerWriteBlock	
+	10$
+		plp	
+	08$
+		rts
+	SetDirHead:
+		LoadB	r1,#$12
+		LoadB	r1H,#$00
+		sta	r4	
+		LoadB	r4H,#$82
+		rts
+	
+	SetDHd_2:
+		LoadB	r1,#$35
+		LoadB	r1H,#$00
+		sta	r4	
+		LoadB	r4H,#$89
+		rts
+	CheckParams:
+		LoadB	errCount,#$00
+		ldx	#$02	
+		lda	r1	
+		beq	12$	
+		cmp	#$24	
+		bcc	14$	
+		ldy	curDrive	
+		lda	T_88B7,Y	
+		bpl	12$	
+		CmpBI	r1,#$47
+		bcs	12$	
+	14$
+		sec	
+		rts	
+	12$
+		clc	
+		rts
+	dOpenDisk:
+		jsr	NewDisk	
+		txa	
+		bne	16$	
+		jsr	GetDirHead	
+		txa	
+		bne	16$	
+		LoadW	r5,#curDirHead
+		jsr	ChkDkGEOS	
+		LoadW	r4,#diskName
+		ldx	#$0C	
+		jsr	GetPtrCurDkNm	
+		ldx	#r4	
+		ldy	#r5	
+		lda	#18	
+		jsr	CopyFString	
+		ldx	#$00	
+	16$
+		rts	dBlkAlloc:
+		ldy	#$01	
+		sty	r3	
+		dey	
+		sty	r3H	
+	dNxtBlkAlloc:
+		PushW	r9
+		PushW	r3
+		LoadW	r3,#a1H
+		ldx	#$06	
+		ldy	#$08	
+		jsr	Ddiv	
+		lda	r8	
+		beq	18$	
+		IncW	r2
+	18$
+		jsr	SetCurDHV	
+		jsr	CalcBlksFree	
+		PopW	r3
+		ldx	#$03	
+		lda	r2H	
+		cmp	r4H	
+		bne	20$	
+		lda	r2	
+		cmp	r4	
+	20$
+		beq	22$	
+		bcs	24$	
+	22$
+		MoveW	r6,r4
+		MoveW	r2,r5
+	28$
+		jsr	SetNextFree	
+		txa	
+		bne	24$	
+		ldy	#$00	
+		lda	r3	
+		sta	(r4),Y	
+		iny	
+		lda	r3H	
+		sta	(r4),Y	
+		clc	
+		lda	#$02	
+		adc	r4	
+		sta	r4	
+		bcc	26$	
+		inc	r4H	
+	26$
+		DecW	r5
+		lda	r5	
+		ora	r5H	
+		bne	28$	
+		ldy	#$00	
+		tya	
+		sta	(r4),Y	
+		iny	
+		lda	r8	
+		bne	30$	
+		lda	#$FE	
+	30$
+		clc	
+		adc	#$01	
+		sta	(r4),Y	
+		ldx	#$00	
+	24$
+		PopW	r9
+		rts	SetCurDHV:
+		LoadW	r5,#curDirHead
+		rts	dGet1stDirEntry:
+		LoadB	r1,#$12
+		LoadB	r1H,#$01
+		jsr	GetDiskBlkBuf	
+		LoadW	r5,#diskBlkBuf+2
+		LoadB	borderFlag,#$00
+		rts	dGetNxtDirEntry:
+		ldx	#$00	
+		ldy	#$00	
+		clc	
+		lda	#$20	
+		adc	r5	
+		sta	r5	
+		bcc	32$	
+		inc	r5H	
+	32$
+		CmpWI	r5,#$80FF
+		bcc	34$	
+		ldy	#$FF	
+		MoveW	diskBlkBuf,r1
+		bne	36$	
+		lda	borderFlag	
+		bne	34$	
+		LoadB	borderFlag,#$FF
+		jsr	GetOPDPtr	
+		txa	
+		bne	34$	
+		tya	
+		bne	34$	
+	36$
+		jsr	GetDiskBlkBuf	
+		ldy	#$00	
+		LoadW	r5,#$8002
+	34$
+		rts	dGetBorder:
+		jsr	GetDirHead	
+		txa	
+		bne	38$	
+		LoadW	r5,#curDirHead
+		jsr	ChkDkGEOS	
+		bne	40$	
+		ldy	#$FF	
+		bne	42$	
+	40$
+		MoveW	tr_ScOPD,r1
+		ldy	#$00	
+	42$
+		ldx	#$00	
+	38$
+		rts	dChkDkGeos:
+		ldy	#$AD	
+		ldx	#$00	
+		LoadB	isGEOS,#$00
+	46$
+		lda	(r5),Y	
+		cmp	GEOSDiskID,X	
+		bne	44$	
+		iny	
+		inx	
+		cpx	#$0B	
+		bne	46$	
+		LoadB	isGEOS,#$FF
+	44$
+		lda	isGEOS	
+		rts	GEOSDiskID:
+		.byte	"GEOS format V1.0" 
+		.byte	NULL
+	
+	dGetFreeDirBlk:
+		php	
+		sei	
+		PushB	r6
+		PushW	r2
+		ldx	r10	
+		inx	
+		stx	r6	
+		LoadB	r1,#$12
+		LoadB	r1H,#$01
+	56$
+		jsr	GetDiskBlkBuf	
+	54$
+		txa	
+		bne	48$	
+		dec	r6	
+		beq	50$	
+	60$
+		lda	diskBlkBuf	
+		bne	52$	
+		jsr	AddDirBlock	
+		bra	54$	
+	52$
+		sta	r1	
+		MoveB	D_8001,r1H
+		bra	56$	
+	50$
+		ldy	#$02	
+		ldx	#$00	
+	58$
+		lda	diskBlkBuf,Y	
+		beq	48$	
+		tya	
+		clc	
+		adc	#$20	
+		tay	
+		bcc	58$	
+		LoadB	r6,#$01
+		ldx	#$04	
+		ldy	r10	
+		iny	
+		sty	r10	
+		cpy	#$12	
+		bcc	60$	
+	48$
+		PopW	r2
+		PopB	r6
+		plp	
+		rts	dAddDirBlock:
+		PushW	r6
+		ldy	#$48	
+		ldx	#$04	
+		lda	curDirHead,Y	
+		beq	62$	
+		MoveW	r1,r3
+		jsr	SetNextFree	
+		MoveW	r3,diskBlkBuf
+		jsr	PutDiskBlkBuf	
+		txa	
+		bne	62$	
+		MoveW	r3,r1
+		jsr	ClearAndWrite	
+	62$
+		PopW	r6
+		rts	ClearAndWrite:
+		lda	#$00	
+		tay	
+	64$
+		sta	diskBlkBuf,Y	
+		iny	
+		bne	64$	
+		dey	
+		sty	D_8001	
+		jmp	PutDiskBlkBuf	dSetNextFree:
+		lda	r3H	
+		clc	
+		adc	interleave	
+		sta	r6H	
+		MoveB	r3,r6
+		cmp	#$12	
+		beq	66$	
+		cmp	#$35	
+		beq	66$	
+	88$
+		CmpBI	r6,#$12
+		beq	68$	
+		cmp	#$35	
+		beq	68$	
+	66$
+		cmp	#$24	
+		bcc	70$	
+		clc	
+		adc	#$B9	
+		tax	
+		lda	curDirHead,X	
+		bne	72$	
+		beq	68$	
+	70$
+		asl	A	
+		asl	A	
+		tax	
+		lda	curDirHead,X	
+		beq	68$	
+	72$
+		lda	r6	
+		jsr	SNxtFHlp	
+		lda	SecScTab,X	
+		sta	r7	
+		tay	
+	76$
+		jsr	J_93E1	
+		beq	74$	
+		inc	r6H	
+		dey	
+		bne	76$	
+	68$
+		bit	D_8203	
+		bpl	78$	
+		CmpBI	r6,#$24
+		bcs	80$	
+		clc	
+		adc	#$23	
+		sta	r6	
+		bne	82$	
+	80$
+		sec	
+		sbc	#$22	
+		sta	r6	
+		bne	84$	
+	78$
+		inc	r6	
+		lda	r6	
+	84$
+		cmp	#$24	
+		bcs	86$	82$
+		sec	
+		sbc	r3	
+		sta	r6H	
+		asl	A	
+		adc	#$04	
+		adc	interleave	
+		sta	r6H	
+		bne	88$	
+	74$
+		MoveB	r6,r3
+		MoveB	r6H,r3H
+		ldx	#$00	
+		rts	
+	86$
+		ldx	#$03	
+		rts	SNxtFHlp:
+		pha	
+		cmp	#$24	
+		bcc	90$	
+		sec	
+		sbc	#$23	
+	90$
+		ldx	#$00	
+	94$
+		cmp	SecTrTab,X	
+		bcc	92$	
+		inx	
+		bne	94$	
+	92$
+		pla	
+		rts	SecTrTab:
+		.byte	$12,$19,$1F,$24 
+	SecScTab:
+		.byte	$15,$13,$12,$11
+
+	J_93E1:
+		lda	r6H	
+	98$
+		cmp	r7	
+		bcc	96$	
+		sec	
+		sbc	r7	
+		bra	98$	
+	96$
+		sta	r6H	
+	dAllocateBlock:
+		jsr	FindBAMBit	
+		beq	02$	
+		CmpBI	r6,#$24
+		bcc	04$	
+		lda	r8H	
+		eor	#$FF	
+		and	dir2Head,X	
+		sta	dir2Head,X	
+		bra	06$	
+	04$
+		lda	r8H	
+		eor	#$FF	
+		and	curDirHead,X	
+		sta	curDirHead,X	
+	06$
+		ldx	r7H	
+		dec	curDirHead,X	
+		ldx	#$00	
+		rts	
+	02$
+		ldx	#$06	
+		rts	dFindBamBit:
+		lda	r6H	
+		and	#$07	
+		tax	
+		lda	FBBitTab,X	
+		sta	r8H	
+		CmpBI	r6,#$24
+		bcc	08$	
+		sec	
+		sbc	#$24	
+		sta	r7H	
+		lda	r6H	
+		lsr	A	
+		lsr	A	
+		lsr	A	
+		clc	
+		adc	r7H	
+		asl	r7H	
+		clc	
+		adc	r7H	
+		tax	
+		lda	r6	
+		clc	
+		adc	#$B9	
+		sta	r7H	
+		lda	dir2Head,X	
+		and	r8H	
+		rts	
+	08$
+		asl	A	
+		asl	A	
+		sta	r7H	
+		lda	r6H	
+		lsr	A	
+		lsr	A	
+		lsr	A	
+		sec	
+		adc	r7H	
+		tax	
+		lda	curDirHead,X	
+		and	r8H	
+		rts	
+	FBBitTab:
+		.byte	$01,$02,$04,$08,$10,$20,$40,$80	dFreeBlock:
+		jsr	FindBAMBit	
+		bne	10$	
+		CmpBI	r6,#$24
+		bcc	12$	
+		lda	r8H	
+		eor	dir2Head,X	
+		sta	dir2Head,X	
+		bra	14$	
+	12$
+		lda	r8H	
+		eor	curDirHead,X	
+		sta	curDirHead,X	
+	14$
+		ldx	r7H	
+		inc	curDirHead,X	
+		ldx	#$00	
+		rts	
+	10$
+		ldx	#$06	
+		rts
+	
+	dCalcBlksFree:
+		LoadB	r4,#$00
+		sta	r4H	
+		ldy	#$04	
+	18$
+		lda	(r5),Y	
+		clc	
+		adc	r4	
+		sta	r4	
+		bcc	16$	
+		inc	r4H	
+	16$
+		tya	
+		clc	
+		adc	#$04	
+		tay	
+		cpy	#$48	
+		beq	16$	
+		cpy	#$90	
+		bne	18$	
+		LoadW	r3,#$0298
+		bit	D_8203	
+		bpl	20$	
+		ldy	#$DD	
+	24$
+		lda	(r5),Y	
+		clc	
+		adc	r4	
+		sta	r4	
+		bcc	22$	
+		inc	r4H	
+	22$
+		iny	
+		bne	24$	
+		LoadW	r3,#$0530
+	20$
+		rts	dSetGEOSDisk:
+		jsr	GetDirHead	
+		txa	
+		bne	26$	
+		LoadW	r5,#curDirHead
+		jsr	CalcBlksFree	
+		ldx	#$03	
+		lda	r4	
+		ora	r4H	
+		beq	26$	
+		LoadB	r0,#$00
+		LoadB	r3,#$13
+	30$
+		LoadB	r3H,#$00
+		jsr	SetNextFree	
+		txa	
+		beq	28$	
+		lda	r0	
+		bne	26$	
+		LoadB	r3,#$01
+		sta	r0	
+		bne	30$	
+	28$
+		MoveW	r3,r1
+		jsr	ClearAndWrite	
+		txa	
+		bne	26$	
+		MoveW	r1,tr_ScOPD
+		ldy	#$BC	
+		ldx	#$0F	
+	32$
+		lda	GEOSDiskID,X	
+		sta	curDirHead,Y	
+		dey	
+		dex	
+		bpl	32$	
+		jsr	PutDirHead	
+	26$
+		rts	bInitForIO:
+		php	
+		PopB	tmpPS
+		sei	
+		MoveB	CPU_DATA,tmpCPU_DATA
+		LoadB	CPU_DATA,#$36
+		MoveB	grirqen,tmpgrirgen
+		MoveB	clkreg,tmpclkreg
+		ldy	#$00	
+		sty	clkreg	
+		sty	grirqen	
+		LoadB	grirq,#$7F
+		sta	D_DC0D	
+		sta	D_DD0D	
+		LoadW	irqvec,#dIrqHandler
+		LoadW	nmivec,#dNMIHandler
+		LoadB	D_DD02,#$3F
+		MoveB	mobenble,tmpmobenble
+		sty	mobenble	
+		sty	D_DD05	
+		iny	
+		sty	D_DD04	
+		LoadB	D_DD0D,#$81
+		LoadB	D_DD0E,#$09
+		ldy	#$2C	
+	34$
+		lda	rasreg	
+		cmp	z8F	
+		beq	34$	
+		sta	z8F	
+		dey	
+		bne	34$	
+		rts	dIrqHandler:
+		PopY	
+		PopX	
+		pla	
+	dNMIHandler:
+		rti	dDoneWithIO:
+		sei	
+		MoveB	tmpclkreg,clkreg
+		MoveB	tmpmobenble,mobenble
+		LoadB	D_DD0D,#$7F
+		lda	D_DD0D	
+		MoveB	tmpgrirgen,grirqen
+		MoveB	tmpCPU_DATA,CPU_DATA
+		PushB	tmpPS
+		plp	
+		rts	dEnterTurbo:
+		lda	curDrive	
+		jsr	SetDevice	
+		ldx	#$00	
+		rts
+	
+	dExitTurbo:
+		LoadB	interleave,#$08
+		rts	dChangeDiskDev:
+		sta	curDrive	
+		sta	curDevice	
+		ldx	#$00	
+		rts	dNewDisk:
+		jsr	EnterTurbo	
+		rts	dReadBlock:
+		jsr	CheckParams	
+		bcc	36$	
+		jsr	REUWrtBlk	
+	36$
+		ldy	#$00	
+		rts	dReadLink:
+		jsr	CheckParams	
+		bcc	38$	
+		ldy	#$91	
+		jsr	REURdLnk	
+	38$
+		rts	dWriteBlock:
+		jsr	CheckParams	
+		bcc	40$	
+		jsr	REURdBlk	
+	40$
+		rts	dVerWrtBlck:
+		jsr	CheckParams	
+		bcc	42$	
+		ldx	#$00	
+	42$
+		rts	REUWrtBlk:
+		ldy	#$91	
+		bne	REUOp	
+	REURdBlk:
+		ldy	#$90	
+		bne	REUOp	
+	REURdLnk:
+		PushW	r2
+		LoadW	r2,#r0
+		bne	REUOp_1	
+	REUOp:
+		PushW	r2
+		LoadW	r2,#$0100
+	REUOp_1					=*
+		PushW	r0
+		PushW	r1
+		PushB	r3
+		PushY	
+		CmpBI	r1,#$24
+		bcc	46$	
+		sec	
+		sbc	#$23	
+	46$
+		tay	
+		dey	
+		lda	T_96A8,Y	
+		clc	
+		adc	r1H	
+		sta	r1H	
+		lda	T_96CC,Y	
+		ldy	curDrive	
+		adc	driveData,Y	
+		sta	r3	
+		CmpBI	r1,#$24
+		bcc	48$	
+		lda	r1H	
+		clc	
+		adc	#$BC	
+		sta	r1H	
+		lda	r3	
+		adc	#$02	
+		sta	r3	
+	48$
+		LoadB	r1,#$00
+		MoveW	r4,r0
+		PopY	
+		jsr	DoRAMOp	
+		tax	
+		PopB	r3
+		PopW	r1
+		PopW	r0
+		PopW	r2
+		txa	
+		ldx	#$00	
+		rts	T_96A8:
+		.byte	$00,$15,$2A,$3F,$54,$69,$7E,$93
+		.byte	$A8,$BD,$D2,$E7,$FC,$11,$26,$3B
+		.byte	$50,$65,$78,$8B,$9E,$B1,$C4,$D7
+		.byte	$EA,$FC,$0E,$20,$32,$44,$56,$67
+		.byte	$78,$89,$9A,$AB
+	T_96CC:
+		.byte	$00,$00,$00,$00,$00,$00,$00,$00
+		.byte	$00,$00,$00,$00,$00,$01,$01,$01
+		.byte	$01,$01,$01,$01,$01,$01,$01,$01
+		.byte	$01,$01,$02,$02,$02,$02,$02,$02
+		.byte	$02,$02,$02,$02 
+	tmpclkreg:
+		.byte	0
+	tmpPS:
+		.byte	0
+	tmpgrirgen:
+		.byte	0
+	tmpCPU_DATA:
+		.byte	0
+	tmpmobenble:
+		.byte	0,0
+	VExeProc:
+		.word	NULL
+	DTrSec:
+		.byte	$00,00	
+	tmpDD00_2:
+		.byte	$00,$00
+	errCount:
+		.byte	0
+	errStore:
+		.byte	0
+	tmpDrType:
+		.byte	0
+	borderFlag:
+		.byte	0

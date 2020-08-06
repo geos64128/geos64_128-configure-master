@@ -1,0 +1,155 @@
+.include geo.sym
+.include geos128.sym
+
+;Driver Shadowing Uses disk cache L/H word tables. Not sure if these are address....
+;
+D_0054	=	$54
+D_0069	=	$69
+D_0111	=	$111
+D_0126	=	$126
+D_013B	=	$13B
+D_0150	=	$150
+D_0165	=	$165	
+D_0178	=	$178	
+D_018B	=	$18B	
+D_019E	=	$019E
+D_01B1	=	$01B1	
+D_01C4	=	$01C4	
+D_01D7	=	$01D7	
+D_01EA	=	$01EA	
+D_01FC	=	$01FC	
+D_020E	=	$020E	
+D_0220	=	$0220	
+D_0232	=	$0232	
+D_0244	=	$0244	
+D_0256	=	$0256	
+D_0267	=	$0267	
+D_0278	=	$0278	
+D_0289	=	$0289	
+D_029A	=	$029A	
+D_02AB	=	$02AB	
+
+T_0300	==	$0300
+D_03E2	=	$03E2	
+T_03FE	==	$03FE
+D_03FF	==	$03FF	
+D_040F	=	$040F
+
+ ;ramsect
+	D_2102	=	$2102
+	D_2103	=	$2103
+	bootDrv	==	$2104
+	D_2105	=	$2105
+	D_2106	=	$2106
+	D_2107	=	$2107
+	D_2108	=	$2108
+	D_2109	=	$2109
+	T_210A	==	$210A
+	D_212A	=	$212A	
+	D_212B	=	$212B
+	D_212C	=	$212C
+	D_212D	=	$212D
+	D_212F	=	$212F
+	T_2130	==	$2130
+	D_2150	=	$2150
+	D_2550	=	$2550	
+	D_2551	=	$2551
+	J_3156	==	$3156
+	D_5000	=	$5000
+	D_522D	=	$522D
+	D_572D	=	$572D	D_2C00	=	$2C00		
+	D_3C80	=	$3C80
+	D_4A00	=	$4A00
+	D_5780	=	$5780
+	D_6500	=	$6500
+	D_7280	=	$7280
+
+	D_8001	=	$8001
+	T_8002	=	$8002	
+
+
+	frstDirSector	==   	$8201
+	diskFormat 	==   	$8202
+	D_8203	==	$8203	
+	D_815C	=	$815C
+	tr_ScOPD 	==  	$82AB
+	D_848F	=	$848F
+	D_8490	=	$8490
+	iotBotVector	==   	$849F
+	D_84A0	=	$84A0	
+	T_88B7	=	$88B7	
+	inpDevName	==   	$88CB
+	T_8910	=	$8910
+	D_89FA 	=	$89FA
+	D_89FB	=	$89FB
+	D_89FD	=	$89FD
+	D_8D8E	=	$8D8E
+	D_8DC6	=	$8DC6
+	T_8DC6	=	$8DC6
+
+	GetOPDPtr	==   	$9036
+	AddDirBlock	==   	$9039
+	D_96D7	=	$96D7
+	D_96FC	=	$96FC
+	dir3Head	==  	$9C80
+	T_9C90	=	$9C90	
+	D_C1EE	=	$C1EE
+	D_C1EF	=	$C1EF	
+	D_C2B1	==	$C2B1		;?	grirq	==	$D019
+	grirqen	==	$D01A
+	D_D030	=	$D030	
+	D_DC08	=	$DC08
+	D_DC0D	=	$DC0D
+	D_DD02	=	$DD02
+	D_DD04	=	$DD04
+	D_DD05	=	$DD05
+	D_DD0D	=	$DD0D
+	D_DD0E	=	$DD0E
+	D_DF01	=	$DF01
+	D_DF02 	=	$DF02
+	D_DF04	=	$DF04
+	D_DF06 	=	$DF06
+	D_DF07	=	$DF07
+	D_DF08	=	$DF08
+	D_DF09	=	$DF09
+	D_DF0A 	=	$DF0A
+
+	;Serial Communications.
+	Second	==   	$ff93
+	Tksa	==   	$ff96
+	MMUreg	==  	$FF00
+	Acptr	==  	$ffa5
+	Ciout	==   	$ffa8
+	Untlk	==   	$ffab
+	Unlsn	==   	$ffae
+	Talk	==  	$ffb4.if COMMENT
+REU Bank/Addr	SIZE	Holds
+------------	-------	------------------------
+RE0_7900	5	?
+RE0_8300-B8FF	$4*0D80	Disk Drivers. 	
+RE0_B900-BB7F	$280	Tail of DISK_BASE	
+RE0_BB80-CC3F	$10C0	Kernal From BF40-CFFF
+RE0_CC40-FC40	$3000	Kernal From D000-FFFF
+.endif
+
+K_9D80	==	$9D80
+K_BF40	==	$BF40
+K_C080	==	$C080
+K_C310	==	$C310
+K_D000	==	$D000
+
+;REU Access Points
+RE0_7900	=	$7900	
+RE0_7965	=	$7965
+RE0_7989	=	$7989
+RE0_798E	=	$798E
+RE0_7A16	=	$7A16
+RE0_7DC3	=	$7DC3
+RE0_7DC7	=	$7DC7
+RE0_7DCB	=	$7DCB
+RE0_7E00	=	$7E00
+RE0_8300	=	$8300	
+RE0_B900	=	$B900
+RE0_BB80	=	$BB80
+RE0_BCC0	=	$BCC0
+RE0_CC40	=	$CC40

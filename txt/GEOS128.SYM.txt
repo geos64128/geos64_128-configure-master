@@ -1,0 +1,28 @@
+;AccessCache	= $c2ef
+ColorCard	= $c2f8
+ColorRectangle	= $c2fb
+DoBOp	= $c2ec
+HideOnlyMouse	= $c2f2
+JmpIndX	= $9d80
+MoveBData	= $c2e3
+NormalizeX	= $c2e0
+SetColorMode	= $c2f5
+SetMsePic	= $c2da
+SetNewMode	= $c2dd
+SwapBData	= $c2e6
+TempHideMouse	= $c2d7
+VerifyBData	= $c2e9
+c128Flag 	= $c013	;bit 7 set if on 128
+
+;
+;graphMode	== $003f (moved to geo.zsym) 	;bit 7 set = 80 column mode
+scr80polar	= $88bc	;copy of VDC reg 24
+scr80colors	= $88bd	;copy of VDC reg 26
+keyreg	= $d02f
+clkreg	= $d030
+mmu	= $d500
+VDC	= $d600
+MOUSEBASE	= $fd00
+ENDMOUSE	= $fe80
+config	= $ff00
+;

@@ -1,0 +1,119 @@
+;	TurboCode resident in Disk Driver for 1541.
+;	Kernal Memory space 		$98BB-9C06
+;	Sent to Drives Memory space at 	$0300 for execution.
+;
+;	V1.1 of geoAssembler does not allow setting a static psect. This would be required to
+;  	have the source here instead of a hex dump of the Turbo Code.
+;	1541.Turbo.s has the code this dump was generated from.
+;	This code can be built into a SEQ program with a target address of $300. Then a hex dump
+;      of that seq could be used as the include here.
+;
+;	The next version of geoProgrammer' will support static psect section which will remove
+;      the requirment for this workaround.	lTurboCode:
+		.byte	$0F
+		.byte	$07,$0D,$05,$0B,$03,$09,$01,$0E
+		.byte	$06,$0C,$04,$0A,$02,$08,$00,$00
+		.byte	$80,$20,$A0,$40,$C0,$60,$E0,$10
+		.byte	$90,$30,$B0,$50,$D0,$70,$F0,$A0
+		.byte	$00,$20,$3A,$03,$A0,$00,$84,$73
+		.byte	$84,$74,$C8,$84,$71,$A0,$00,$20
+		.byte	$CB,$03,$A5,$71,$20,$40,$03,$A4
+		.byte	$71,$20,$CB,$03,$88,$B1,$73,$AA
+		.byte	$4A,$4A,$4A,$4A,$85,$70,$8A,$29
+		.byte	$0F,$AA,$A9,$04,$8D,$00,$18,$2C
+		.byte	$00,$18,$F0,$FB,$2C,$00,$18,$D0
+		.byte	$00,$D0,$00,$8E,$00,$18,$8A,$2A
+		.byte	$29,$0F,$8D,$00,$18,$A6,$70,$BD
+		.byte	$00,$03,$8D,$00,$18,$EA,$2A,$29
+		.byte	$0F,$C0,$00,$8D,$00,$18,$D0,$C4
+		.byte	$F0,$43,$A0,$01,$20,$89,$03,$85
+		.byte	$71,$A8,$20,$89,$03,$A4,$71,$60
+		.byte	$20,$CB,$03,$48,$68,$A9,$04,$2C
+		.byte	$00,$18,$F0,$FB,$EA,$EA,$EA,$AD
+		.byte	$00,$18,$0A,$EA,$EA,$EA,$EA,$0D
+		.byte	$00,$18,$29,$0F,$AA,$EA,$EA,$EA
+		.byte	$AD,$00,$18,$0A,$48,$A5,$70,$68
+		.byte	$0D,$00,$18,$29,$0F,$1D,$10,$03
+		.byte	$88,$91,$73,$D0,$CE,$A2,$02,$8E
+		.byte	$00,$18,$60,$C6,$48,$D0,$03,$20
+		.byte	$34,$05,$A9,$C0,$8D,$05,$18,$2C
+		.byte	$05,$18,$10,$EF,$A9,$04,$2C,$00
+		.byte	$18,$D0,$F4,$A9,$00,$8D,$00,$18
+		.byte	$60,$08,$78,$A5,$49,$48,$AD,$0F
+		.byte	$18,$29,$DF,$8D,$0F,$18,$A0,$00
+		.byte	$88,$D0,$FD,$20,$BE,$03,$A9,$04
+		.byte	$2C,$00,$18,$F0,$FB,$20,$29	Turbo2:
+		.byte	$05,$A9,$06,$85,$74,$A9,$4A,$85
+		.byte	$73,$20,$7B,$03,$20,$2D,$05,$A9
+		.byte	$07,$85,$74,$A9,$00,$85,$73,$A9
+		.byte	$03,$48,$A9,$FD,$48,$6C,$4A,$06
+		.byte	$20,$CB,$03,$A9,$00,$85,$33,$8D
+		.byte	$00,$18,$20,$8F,$F9,$A9,$EC,$8D
+		.byte	$0C,$1C,$68,$68,$68,$85,$49,$28
+		.byte	$60,$AD,$4C,$06,$85,$77,$49,$60
+		.byte	$85,$78,$60,$20,$32,$06,$A5,$22
+		.byte	$F0,$05,$A6,$00,$CA,$F0,$20,$A5
+		.byte	$12,$48,$A5,$13,$48,$20,$DF,$04
+		.byte	$68,$85,$13,$AA,$68,$85,$12,$A4
+		.byte	$00,$C0,$01,$D0,$29,$E4,$17,$D0
+		.byte	$26,$C5,$16,$D0,$22,$A9,$00,$48
+		.byte	$A5,$22,$A2,$FF,$38,$ED,$4C,$06
+		.byte	$F0,$13,$B0,$06,$49,$FF,$69,$01
+		.byte	$A2,$01,$20,$94,$04,$AD,$4C,$06
+		.byte	$85,$22,$20,$18,$05,$68,$60,$A9
+		.byte	$0B,$85,$00,$60,$86,$4A,$0A,$A8
+		.byte	$AD,$00,$1C,$29,$FE,$85,$70,$A9
+		.byte	$1E,$85,$71,$A5,$70,$18,$65,$4A
+		.byte	$45,$70,$29,$03,$45,$70,$85,$70
+		.byte	$8D,$00,$1C,$A5,$71,$20,$D3,$04
+		.byte	$A5,$71,$C0,$05,$90,$08,$C9,$11
+		.byte	$90,$0A,$E9,$02,$D0,$06,$C9,$1C
+		.byte	$B0,$02,$69,$04,$85,$71,$88,$D0
+		.byte	$D2,$A9,$4B,$8D,$05,$18,$AD,$05
+		.byte	$18,$D0,$FB,$60,$20,$32,$06,$A6
+		.byte	$00,$CA,$F0,$12,$A2,$FF,$A9,$01
+		.byte	$20,$94,$04,$A2,$01,$8A,$20,$94
+		.byte	$04,$A9,$FF,$20,$D3,$04,$A9,$04
+		.byte	$85,$70,$20,$99,$05,$A6,$18,$86	Turbo3:
+		.byte	$22,$A4,$00,$88,$F0,$11,$C6,$70
+		.byte	$30,$08,$A6,$70,$20,$1D,$05,$38
+		.byte	$B0,$E8,$A9,$00,$85,$22,$60,$8A
+		.byte	$20,$4B,$F2,$85,$43,$AD,$00,$1C
+		.byte	$29,$9F,$1D,$44,$05,$8D,$00,$1C
+		.byte	$60,$A9,$F7,$D0,$11,$A9,$08,$0D
+		.byte	$00,$1C,$D0,$F1,$A9,$00,$85,$20
+		.byte	$A9,$FF,$85,$3E,$A9,$FB,$2D,$00
+		.byte	$1C,$4C,$25,$05,$00,$20,$40,$60
+		.byte	$AA,$24,$20,$10,$09,$20,$3B,$06
+		.byte	$A9,$20,$85,$20,$A2,$00,$E4,$22
+		.byte	$F0,$21,$20,$F6,$04,$C9,$01,$D0
+		.byte	$1A,$A4,$19,$C8,$C4,$43,$90,$02
+		.byte	$A0,$00,$84,$19,$A9,$00,$85,$45
+		.byte	$A9,$00,$85,$33,$A9,$18,$85,$32
+		.byte	$20,$A5,$05,$60,$20,$43,$04,$A6
+		.byte	$00,$CA,$D0,$03,$20,$48,$05,$20
+		.byte	$7B,$03,$A9,$10,$D0,$05,$20,$43
+		.byte	$04,$A9,$00,$A6,$00,$CA,$F0,$03
+		.byte	$60,$A9,$30,$85,$45,$A9,$06,$85
+		.byte	$33,$A9,$4C,$85,$32,$A9,$07,$85
+		.byte	$31,$BA,$86,$49,$A2,$01,$86,$00
+		.byte	$CA,$86,$3F,$A9,$EE,$8D,$0C,$1C
+		.byte	$A5,$45,$C9,$10,$F0,$0A,$C9,$30
+		.byte	$F0,$03,$4C,$CA,$F4,$4C,$B1,$F3
+		.byte	$20,$E9,$F5,$85,$3A,$AD,$00,$1C
+		.byte	$29,$10,$D0,$04,$A9,$08,$D0,$57
+		.byte	$20,$8F,$F7,$20,$10,$F5,$A2,$09
+		.byte	$50,$FE,$B8,$CA,$D0,$FA,$A9,$FF
+		.byte	$8D,$03,$1C,$AD,$0C,$1C,$29,$1F
+		.byte	$09,$C0,$8D,$0C,$1C,$A9,$FF,$A2
+		.byte	$05,$8D,$01,$1C,$B8,$50,$FE,$B8	Turbo4:
+		.byte	$CA,$D0,$FA,$A0,$BB,$B9,$00,$01
+		.byte	$50,$FE,$B8,$8D,$01,$1C,$C8,$D0
+		.byte	$F4,$B1,$30,$50,$FE,$B8,$8D,$01
+		.byte	$1C,$C8,$D0,$F5,$50,$FE,$AD,$0C
+		.byte	$1C,$09,$E0,$8D,$0C,$1C,$A9,$00
+		.byte	$8D,$03,$1C,$85,$50,$A9,$01,$85
+		.byte	$00,$60,$A5,$20,$29,$20,$D0,$0D
+		.byte	$20,$7E,$F9,$A0,$80,$CA,$D0,$FD
+		.byte	$88,$D0,$FA,$84,$3E,$A9,$FF,$85
+		.byte	$48,$60,$00,$00

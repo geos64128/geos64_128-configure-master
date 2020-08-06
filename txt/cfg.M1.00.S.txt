@@ -1,0 +1,1095 @@
+.include APP.inc		;13B1	<=>     1DF1				;55
+
+.if COMMENT
+p6	InitUI:	;Put up User Interface an show current setup				;1466
+p47	CA_NoDrv:	;No Drive Click Action				;1CF5
+
+.endif;Reverse Engineered by Paul B Murdaugh. 7/30/20 10:30PM - 8/3/20 12:05 AM
+;paulbmurdaugh@gmail.com
+
+;.zsect
+	;None
+;.ramsect
+	;None Assigned yet Still in equates	T_RCords:
+		.byte	105		
+		.byte	196
+		.word	180,310
+		;---
+		.byte	133
+		.byte	143
+		.word	286,304
+		;---
+		.byte	161
+		.byte	171
+		.word	286,304
+		;---
+		.byte	7
+		.byte	98
+		.word	30,160
+		;---
+		.byte	7
+		.byte	98
+		.word	180,310
+		;---
+		.byte	105
+		.byte	196
+		.word	30,160
+		;---
+		.byte	23
+		.byte	33
+		.word	136,154
+		;---
+		.byte	35
+		.byte	45
+		.word	136,154
+		;---
+		.byte	47
+		.byte	57
+		.word	136,154
+		;---
+		.byte	59
+		.byte	69
+		.word	136,154
+		;---
+		.byte	71
+		.byte	81
+		.word	136,154
+		;---
+		.byte	83
+		.byte	93
+		.word	136,154
+		;---
+		.byte	23
+		.byte	33
+		.word	286,304
+		;---
+		.byte	35
+		.byte	45
+		.word	286,304
+		;---
+		.byte	47
+		.byte	57
+		.word	286,304
+		;---
+		.byte	59
+		.byte	69
+		.word	286,304
+		;---;continued
+		.byte	71
+		.byte	81
+		.word	286,304
+		;---
+		.byte	83
+		.byte	93
+		.word	286,304
+		;---
+		.byte	121
+		.byte	131
+		.word	136,154
+		;---
+		.byte	133
+		.byte	143
+		.word	136,154
+		;---
+		.byte	145
+		.byte	155
+		.word	136,154
+		;---
+		.byte	157
+		.byte	167
+		.word	136,154
+		;---
+		.byte	169
+		.byte	179
+		.word	136,154
+		;---
+		.byte	181
+		.byte	191
+		.word	136,154
+.if	!GEOASSV1
+	GetRCord:					;1441
+		LoadW	r0,#T_RCords
+		cpy	#0	
+		beq	20$	
+	10$
+		AddVW	6,r0
+		dey	
+		bne	10$	
+	20$
+		ldy	#5	
+	30$
+		lda	(r0),Y	
+		sta	r2,Y	
+		dey	
+		bpl	30$	
+		rts
+.else
+	GetRCord:					;1441
+		LoadW	r0,#T_RCords
+		cpy	#0	
+		beq	20$	
+	10$
+		AddVW	6,r0
+		dey	
+		bne	10$	
+	20$
+		ldy	#5	
+	30$
+		lda	(r0),Y	
+		;--- sta	r2,Y	
+		.byte	$99
+		.word	r2		
+
+		dey	
+		bpl	30$	
+		rts
+.endif
+	InitUI:	;Put up User Interface an show current setup				;1466
+		lda	version	
+		cmp	#$13	
+		bcc	10$	
+		bit	c128Flag	
+		bpl	12$	
+	10$
+		jsr	CloseRecordFile	
+		ldx	#]B_1542	
+		lda	#[B_1542	
+		jsr	DoDlg	
+	14$
+		jmp	EnterDeskTop	
+	12$
+		LoadB	dispBufferOn,#$80
+		MoveB	curDrive,bootDrv
+		tay	
+		lda	driveNdxTyp,Y	
+		sta	D_2105	
+		jsr	J_0FB3	
+		LoadB	numDrives,#1
+		jsr	J_14FC	
+		txa	
+		bne	14$	
+		MoveB	sysRAMFlg,D_040A
+		ldy	#3	
+	16$
+		lda	driveType,Y	
+		sta	LoadAddress,Y	
+		dey	
+		bpl	16$	
+		jsr	J_0FA0	
+		jsr	i_GraphicsString	
+		.byte	NEWPATTERN	
+		.byte	$02	
+		.byte	MOVEPENTO	
+		.word	$0000	
+		.byte	$00	
+		.byte	RECTANGLETO	
+		.word	$013F	
+		.byte	$C7	
+		.byte	NULL
+		
+		LoadW	r0,#I_Icons
+		jsr	DoIcons	
+		LoadW	r0,#M_Menu
+		lda	#0	
+		jsr	DoMenu	
+		jsr	J_1590	
+		LoadW	otherPressVec,#OPV_17E4
+		LoadW	RecoverVector,#RV_2054
+		rts	I_Icons:					;14F0
+		.byte	$01	
+		.word	$0005	
+		.byte	$05	
+		.word	NULL
+		.byte	$27	
+		.byte	$00	
+		.byte	$01	
+		.byte	$01	
+		.word	NULL	J_14FC:
+		jsr	InstDrvr	
+		lda	ramExpSize	
+		beq	18$	
+		lda	curDrive	
+		eor	#%00000001		;$01	
+		tay	
+		lda	driveNdxTyp,Y	
+		beq	18$	
+		jsr	J_0739	
+		jsr	InstDrvr	
+		jsr	J_0739	
+	18$
+		lda	#DRV_1541	
+		jsr	LoadDrvr	
+		bne	20$	
+		lda	#DRV_1571	
+		jsr	LoadDrvr	
+		bne	20$	
+		lda	#DRV_1581		
+		jsr	LoadDrvr	
+		bne	20$	
+		lda	ramExpSize	
+		beq	22$	
+		lda	#DRV_R1541	
+		jsr	LoadDrvr	
+		lda	#DRV_R1581	
+		jsr	LoadDrvr	
+		bne	20$	
+	22$
+		jsr	CloseRecordFile	
+	20$
+		rts	B_1542:
+		.byte	$81	
+		.byte	DBTXTSTR	
+		.byte	$0C	
+		.byte	$20	
+		.word	D_1551	
+		.byte	DBTXTSTR	
+		.byte	$0C	
+		.byte	$30	
+		.word	D_1570	
+		.byte	OK	
+		.byte	$01	
+		.byte	$48	
+		.byte	NULL
+	
+	D_1551:
+		.byte	BOLDON	
+		.byte	DQUOTE	
+		.byte	"CONFIGURE" 
+		.byte	DQUOTE	
+		.byte	" is not applicable" 
+		.byte	NULL	
+	D_1570:
+		.byte	BOLDON	
+		.byte	"to this version of GEOS KERNAL" 
+		.byte	NULL	J_1590:
+		jsr	J_16A2	
+		jsr	J_16CC	
+		lda	ramExpSize	
+		beq	24$	
+		jsr	J_16F6	
+	24$
+		ldy	#0	
+		jsr	J_15AA	
+		jsr	J_1752	
+		jsr	ExitTurbo	
+		rts	J_15AA:
+		jsr	GetRCord	
+		lda	#0	
+		jsr	SetPattern	
+		jsr	Rectangle	
+		lda	#$FF	
+		jsr	FrameRectangle	
+		inc	r2H	
+		IncW	r4
+		lda	#$FF	
+		jsr	FrameRectangle	
+		dec	r2H	
+		ldx	#10	
+		jsr	Ddec	
+		rts	J_15CF:
+		pha	
+		jsr	GetRCord	
+		pla	
+		jsr	SetPattern	
+		jsr	Rectangle	
+		lda	#$FF	
+		jmp	FrameRectangle	J_15DF:
+		MoveW	D_212D,r15
+		ldy	#0	
+		lda	(r15),Y	
+		sta	D_212B	
+		jsr	J_073E	
+		ldy	D_212B	
+		lda	driveNdxTyp,Y	
+		sta	D_212C	
+		jmp	J_161C	J_15FF:
+		MoveW	D_212D,r15
+		ldy	#0	
+		lda	(r15),Y	
+		sta	D_212B	
+		jsr	J_073E	
+		ldy	D_212B	
+		lda	driveNdxTyp,Y	
+		sta	D_212C	
+	J_161C:
+		ldy	#1	
+		lda	(r15),Y	
+		sta	D_212A	
+	32$
+		AddVW	2,r15
+		ldy	#0	
+		lda	(r15),Y	
+		sta	r13	
+		iny	
+		lda	(r15),Y	
+		sta	r13H	
+		beq	28$	
+		ldy	D_212A	
+		jsr	GetRCord	
+		jsr	IsMseInRegion	
+		beq	30$	
+		ldy	#3	
+		lda	(r13),Y	
+		sta	r0	
+		iny	
+		lda	(r13),Y	
+		sta	r0H	
+		jsr	J_JMP_R0	
+		bra	28$	
+	30$
+		inc	D_212A	
+		bra	32$	
+	28$
+		rts.if	!GEOASSV1
+	J_JMP_R0:					;165E
+		jmp	(r0)	
+.else
+	J_JMP_R0:					;165E
+		;--- 	jmp (r0)
+		.byte	$6C
+		.word	r0		
+.endif
+
+	tDrv_A:
+		.byte	BOLDON,"Drive A",NULL		;1661	
+	tDrv_B:
+		.byte	BOLDON,"Drive B",NULL		;166A
+	tDrv_C:
+		.byte	BOLDON,"Drive C",NULL		;1673	J_167C:
+		ldy	#3	
+		jsr	J_1720	
+		ldy	#4	
+		jsr	J_1720	
+		lda	ramExpSize	
+		beq	34$	
+		ldy	#5	
+		jsr	J_1720	
+	34$
+		jsr	J_16BE	
+		jsr	J_16E8	
+		lda	ramExpSize	
+		beq	36$	
+		jsr	J_1712	
+	36$
+		jsr	ExitTurbo	
+		rts	J_16A2:
+		ldy	#3	
+		jsr	J_15AA	
+		LoadW	r0,#tDrv_A
+		LoadB	r1H,#$13
+		LoadW	r11,#$004F
+		jsr	PutString	
+	J_16BE:
+		LoadW	D_212D,#D_1B79
+		jsr	J_1A74	
+		rts	J_16CC:
+		ldy	#4	
+		jsr	J_15AA	
+		LoadW	r0,#tDrv_B
+		LoadB	r1H,#19
+		LoadW	r11,#229
+		jsr	PutString	
+	J_16E8:
+		LoadW	D_212D,#D_1B89
+		jsr	J_1A74	
+		rts	J_16F6:
+		ldy	#5	
+		jsr	J_15AA	
+		LoadW	r0,#tDrv_C
+		LoadB	r1H,#117
+		LoadW	r11,#79
+		jsr	PutString	
+	J_1712:
+		LoadW	D_212D,#D_1B99
+		jsr	J_1A74	
+		rts	J_1720:
+		jsr	GetRCord	
+		AddVW	2,r3
+		SubVW	2,r4
+		AddVB	15,r2	
+		lda	r2H			;SubVB. Wrong Macro order
+		sec	
+		sbc	#2	
+		sta	r2H	
+		lda	#0	
+		jsr	SetPattern	
+		jsr	Rectangle	
+		rts	J_1752:
+		jsr	J_1873	
+		lda	ramExpSize	
+		beq	40$	
+		jsr	J_1761	
+		jsr	J_17B2	
+	40$
+		rts	J_1761:
+		LoadW	r0,#D_179E
+		LoadB	r1H,164
+		LoadW	r11,#190
+		jsr	PutString	
+		LoadW	r0,#D_17A7
+		LoadB	r1H,178
+		LoadW	r11,#190
+		jsr	PutString	
+	J_178F:
+		lda	sysRAMFlg	
+		and	#%10000000		;$80	
+		beq	42$	
+		lda	#2	
+	42$
+		ldy	#1	
+		jsr	J_15CF	
+		rts	D_179E:
+		.byte	BOLDON,"DMA for",NULL	
+	D_17A7:	.byte	DQUOTE,"MoveData",DQUOTE,NULL	
+
+	J_17B2:
+		LoadW	r0,#tRAMReboot
+		LoadB	r1H,#141
+		LoadW	r11,#190
+		jsr	PutString	
+	J_17C9:
+		lda	sysRAMFlg	
+		and	#%00100000		;$20	
+		beq	44$	
+		lda	#2	
+	44$
+		ldy	#2	
+		jsr	J_15CF	
+		rts
+
+	tRAMReboot:
+		.byte	BOLDON,"RAM Reboot",NULL		;17D8	OPV_17E4:					;17E4
+		lda	mouseData	
+		bpl	46$	
+		rts	
+	46$
+		LoadB	D_180C,#$00
+		jsr	J_1837	
+		jsr	J_180D	
+		jsr	J_181B	
+		lda	ramExpSize	
+		beq	48$	
+		jsr	J_1829	
+	48$
+		lda	D_180C	
+		beq	50$	
+		jsr	J_0FA0	
+		jsr	J_167C	
+	50$
+		rts	D_180C:
+		.byte	0      
+
+	J_180D:
+		LoadW	D_212D,#D_1B79
+		jsr	J_15FF	
+		rts	
+	J_181B:
+		LoadW	D_212D,#D_1B89
+		jsr	J_15FF	
+		rts	
+	J_1829:
+		LoadW	D_212D,#D_1B99
+		jsr	J_15DF	
+		rts	J_1837:
+		lda	ramExpSize	
+		beq	52$	
+		ldy	#1	
+		jsr	GetRCord	
+		jsr	IsMseInRegion	
+		beq	54$	
+		lda	sysRAMFlg	
+		eor	#%10000000	;$80	
+		sta	sysRAMFlg	
+		sta	sysFlgCopy	
+		sta	D_040A	
+		jmp	J_178F	
+	54$
+		ldy	#2	
+		jsr	GetRCord	
+		jsr	IsMseInRegion	
+		beq	52$	
+		lda	sysRAMFlg	
+		eor	#%00100000	;$20	
+		sta	sysRAMFlg	
+		sta	sysFlgCopy	
+		sta	D_040A	
+		jmp	J_17C9	
+	52$
+		rts	J_1873:
+		LoadW	r0,#tRAMExp
+		LoadB	r1H,#117
+		LoadW	r11,#190
+		jsr	PutString	
+		MoveB	ramExpSize,r0
+		LoadB	r2,#$40
+		ldx	#r0	
+		ldy	#r2	
+		jsr	BBMult	
+		lda	#$C0	
+		jsr	PutDecimal	
+		lda	#'K'	
+		jsr	PutChar	
+		rts	tRAMExp:					;18A5
+		.byte	BOLDON,"RAM expansion: ",NULL
+	
+	MA_Quit:					;18B6
+		jsr	DoPreviousMenu	
+		lda	driveType	
+		beq	56$	
+		bpl	58$	
+	56$
+		lda	D_848F	
+		beq	60$	
+		bpl	58$	
+	60$
+		rts	
+	58$
+		ldy	bootDrv	
+		lda	driveNdxTyp,Y	
+		bne	62$	
+		tya	
+		eor	#%00000001		;$01	
+		sta	bootDrv	
+	62$
+		jmp	J_043E	j_18D9:
+		ldx	#]B_18E0	
+		lda	#[B_18E0
+		jmp	DoDlg
+
+	B_18E0:
+		.byte	$81	
+		.byte	DBVARSTR	
+		.byte	$10	
+		.byte	$20	
+		.byte	r5	
+		.byte	OK	
+		.byte	$01	
+		.byte	$48	
+		.byte	NULL	MA_Info:
+		jsr	DoPreviousMenu	
+		ldx	#]DB_Info	
+		lda	#[DB_Info	
+		jsr	DoDlg	
+		rts
+	
+	DB_Info:					;18F4
+		.byte	$81	
+		.byte	DBTXTSTR	
+		.byte	$08	
+		.byte	$10	
+		.word	D_1910	
+		.byte	DBTXTSTR	
+		.byte	$08	
+		.byte	$20	
+		.word	D_1921	
+		.byte	DBTXTSTR	
+		.byte	$08	
+		.byte	$2C	
+		.word	D_193B	
+		.byte	DBTXTSTR	
+		.byte	$08	
+		.byte	$3E	
+		.word	D_194F	
+		.byte	DBTXTSTR	
+		.byte	$08	
+		.byte	$4A	
+		.word	D_196C	
+		.byte	DBSYSOPV	
+		.byte	NULL	
+	D_1910:
+		.byte	BOLDON	
+		.byte	OUTLINEON	
+		.byte	"CONFIGURE 2.1" 
+		.byte	PLAINTEXT	
+		.byte	NULL	
+	D_1921:
+		.byte	BOLDON	
+		.byte	"Copyright (C) 1986-1990," 
+		.byte	NULL	
+	D_193B:
+		.byte	"Berkeley Softworks." 
+		.byte	NULL	
+	D_194F:
+		.byte	"Portions Copyright (C) 1990," 
+		.byte	NULL	
+	D_196C:
+		.byte	"Jim Collette. (Q-Link: GEOREP JIM)" 
+		.byte	PLAINTEXT	
+		.byte	NULL	MA_Save:
+		jsr	DoPreviousMenu	
+		lda	bootDrv	
+		jsr	J_073E	
+		LoadW	r0,#rCfgName
+		jsr	OpenRecordFile	
+		txa	
+		bne	64$	
+		lda	#0	
+		jsr	PointRecord	
+		LoadW	r4,#diskBlkBuf
+		jsr	GetBlock	
+		txa	
+		bne	64$	
+		ldy	#4	
+	66$
+		lda	LoadAddress,Y	
+		sta	diskBlkBuf+2,Y	
+		dey	
+		bpl	66$	
+		jsr	PutBlock	
+		txa	
+		bne	64$	
+		jmp	CloseRecordFile	
+	64$
+		ldx	#]B_19D5	
+		lda	#[B_19D5	
+		jmp	DoDlg
+	
+	B_19D5:
+		.byte	$81	
+		.byte	DBTXTSTR	
+		.byte	$0C	
+		.byte	$20	
+		.word	D_19E4	
+		.byte	DBTXTSTR	
+		.byte	$0C	
+		.byte	$30	
+		.word	D_1A03	
+		.byte	OK	
+		.byte	$01	
+		.byte	$48	
+		.byte	NULL	
+	D_19E4:
+		.byte	BOLDON	
+		.byte	"Unable to save configuration:" 
+		.byte	NULL	
+
+	D_1A03:
+		.byte	BOLDON,"Can't find " 
+		.byte	DQUOTE,"CONFIGURE",DQUOTE	
+		.byte	" file.",NULL	M_Menu:					;1A21
+		.byte	0	
+		.byte	14	
+		.word	0,21
+		.byte	1	
+		;--
+		.word	tfile	
+		.byte	DYN_SUB_MENU	
+		.word	MA_DYN1			;->203D
+	tfile:
+		.byte	"file",NULL	
+	tdisk:					;1A32
+		.byte	"disk" ,NULL	
+
+	M_File:					;1A37
+		.byte	14
+		.byte	56
+		.word	0,98
+		.byte	3 | VERTICAL
+
+		.word	tsave
+		.byte	MENU_ACTION
+		.word	MA_Save			;->$1990
+
+		.word	tinfo
+		.byte	MENU_ACTION
+		.word	MA_Info			;->$18E9
+
+		.word	tquit
+		.byte	MENU_ACTION
+		.word	MA_Quit			;->18B6
+
+	tsave:	.byte	"save configuration",NULL		;1A4D
+	tinfo:	.byte	"CONFIGURE info",NULL		;1A60
+	tquit:	.byte	"quit",NULL			;1A6F	J_1A74:
+		MoveW	D_212D,r15
+		ldy	#0	
+		lda	(r15),Y	
+		sta	D_212B	
+		tay	
+		lda	driveNdxTyp,Y	
+		sta	D_212C	
+		ldy	#1	
+		lda	(r15),Y	
+		sta	D_212A	
+		AddVW	2,r15
+		ldy	#11	
+	70$
+		lda	#0	
+		sta	(r15),Y	
+		dey	
+		bpl	70$	
+		jsr	J_1C39	
+		jsr	J_1B5B	
+		jsr	J_1C41	
+		jsr	J_1B5B	
+		jsr	J_1C56	
+		jsr	J_1B5B	
+		jsr	J_1C88	
+		jsr	J_1B5B	
+		jsr	J_1C99	
+		jsr	J_1B5B	
+		jsr	J_1CAA	
+		jsr	J_1B5B	
+		jsr	J_1C6F	
+		jsr	J_1B5B	
+		jsr	J_1CC3	
+		jsr	J_1B5B	
+		jsr	J_1CDC	
+		jsr	J_1B5B	
+		MoveW	D_212D,r15
+		AddVW	2,r15
+	72$	
+		ldy	#0	
+		lda	(r15),Y	
+		sta	r13	
+		iny	
+		lda	(r15),Y	
+		sta	r13H	
+		beq	74$	
+		ldy	D_212A	
+		jsr	GetRCord;continued	
+		lda	r2	
+		add	#8	
+		sta	r1H	
+		sec	
+		lda	r3	
+		sbc	#$5A	
+		sta	r11	
+		lda	r3H	
+		sbc	#0	
+		sta	r11H	
+		ldy	#0	
+		lda	(r13),Y	
+		pha	
+		iny	
+		lda	(r13),Y	
+		sta	r0	
+		iny	
+		lda	(r13),Y	
+		sta	r0H	
+		PushW	r15
+		jsr	PutString	
+		PopW	r15
+		ldy	D_212A	
+		pla	
+		cmp	D_212C	
+		bne	76$	
+		lda	#2	
+		bne	78$	
+	76$
+		lda	#0	
+	78$
+		jsr	J_15CF	
+		AddVW	2,r15
+		inc	D_212A	
+		bra	72$	
+	74$
+		rts	J_1B5B:
+		dey	
+		bmi	90$	
+		lda	T_1BB2,Y	
+		tax	
+		lda	T_1BA9,Y	
+		ldy	#0	
+		sta	(r15),Y	
+		iny	
+		txa	
+		sta	(r15),Y	
+		AddVW	2,r15
+	90$
+		rts	D_1B79:
+		.byte	DEV_8,6
+		.block	14
+	D_1B89:
+		.byte	DEV_9,12
+		.block	14
+	D_1B99:
+		.byte	DEV_10,18
+		.block	14	T_1BA9:
+		.byte	<C_NODrv	
+		.byte	<C_1541	
+		.byte	<C_S1541	
+		.byte	<C_R1541	
+		.byte	<C_1571	
+		.byte	<C_1581	
+		.byte	<C_S1581	
+		.byte	<C_R1571	
+		.byte	<C_R1581	
+	T_1BB2:
+		.byte	>C_NODrv	
+		.byte	>C_1541	
+		.byte	>C_S1541	
+		.byte	>C_R1541	
+		.byte	>C_1571	
+		.byte	>C_1581	
+		.byte	>C_S1581	
+		.byte	>C_R1571	
+		.byte	>C_R1581	C_NODrv:					;1BBB
+		.byte	DRV_NULL     
+		.word	tNoDrive	
+		.word	CA_NoDrv	
+	tNoDrive:					;1BC0
+		.byte	"No Drive",NULL	
+
+	C_1541:					;1BC9
+		.byte	DRV_1541
+		.word	t1541	
+		.word	CA_1541	
+	t1541:					;1BCE
+		.byte	"1541",NULL	
+
+	C_S1541:					;1BD3
+		.byte	DRV_S1541
+		.word	ts1541
+		.word	CA_S1541
+	ts1541:					;1BD8
+		.byte	"Shadowed 1541",NULL
+	
+	C_R1541:					;1BE6
+		.byte	DRV_R1541
+		.word	tr1541
+		.word	J_0841	
+	tr1541:					;1BEB
+		.byte	"RAM 1541",NULL	
+
+	C_1571:					;1BF4
+		.byte	DRV_1571       
+		.word	t1571	
+		.word	CA_1571	
+	t1571:					;1BF9
+		.byte	"1571",NULL	
+	C_1581:					;1BFE
+		.byte	DRV_1581
+		.word	t1581	
+		.word	CA_1581	
+	t1581:		
+		.byte	"1581",NULL	
+	C_S1581:					;1C08
+		.byte	DRV_S1581
+		.word	ts1581	
+		.word	CA_S1581	
+	ts1581:					;1C0D
+		.byte	"Dir Shadow 1581",NULL
+	C_R1571:					;1C1D
+		.byte	DRV_R1571
+		.word	tR1571	
+		.word	CA_R1571	
+	tR1571:					;1C22
+		.byte	"RAM 1571" ,NULL	
+	C_R1581:					;1C2B
+		.byte	DRV_R1581
+		.word	tR1581	
+		.word	CA_R1581	
+	tR1581:					;1C30
+		.byte	"RAM 1581",NULL	J_1C39:
+		ldy	D_212C	
+		beq	84$	
+		ldy	#1	
+	84$
+		rts	J_1C41:
+		lda	D_212C	
+		cmp	#DRV_1541	
+		beq	86$	
+		cmp	#DRV_S1541	
+		beq	86$	
+		cmp	#0	
+		bne	88$	
+	86$
+		ldy	#2	
+		rts	
+	88$
+		ldy	#0	
+		rts	J_1C56:
+		lda	D_212C	
+		cmp	#DRV_S1541	
+		beq	90$	
+		cmp	#DRV_1541		
+		bne	92$	
+		lda	#DRV_S1541	
+		jsr	J_0911	
+		txa	
+		bne	92$	
+	90$
+		ldy	#3	
+		rts	
+	92$
+		ldy	#0	
+		rts	J_1C6F:
+		lda	D_212C	
+		cmp	#DRV_R1541	
+		beq	94$	
+		cmp	#DRV_NULL	
+		bne	96$	
+		lda	#DRV_R1541	
+		jsr	J_0911	
+		txa	
+		bne	96$	
+	94$
+		ldy	#4	
+		rts	
+	96$
+		ldy	#0	
+		rts	J_1C88:
+		lda	D_212C	
+		cmp	#DRV_1571	
+		beq	98$	
+		cmp	#0	
+		bne	02$	
+	98$
+		ldy	#5	
+		rts	
+	02$
+		ldy	#0	
+		rts	J_1C99:
+		lda	D_212C	
+		cmp	#3	
+		beq	04$	
+		cmp	#0	
+		bne	06$	
+	04$
+		ldy	#6	
+		rts	
+	06$
+		ldy	#0	
+		rts	J_1CAA:
+		lda	D_212C	
+		cmp	#DRV_S1581	
+		beq	08$	
+		cmp	#DRV_1581	
+		bne	10$	
+		lda	#DRV_S1581	
+		jsr	J_0911	
+		txa	
+		bne	10$	
+	08$
+		ldy	#7	
+		rts	
+	10$
+		ldy	#0	
+		rts	J_1CC3:
+		lda	D_212C	
+		cmp	#DRV_R1571	
+		beq	12$	
+		cmp	#DRV_NULL	
+		bne	14$	
+		lda	#DRV_R1571	
+		jsr	J_0911	
+		txa	
+		bne	14$	
+	12$
+		ldy	#8	
+		rts	
+	14$
+		ldy	#0	
+		rts	J_1CDC:
+		lda	D_212C	
+		cmp	#DRV_R1581	
+		beq	16$	
+		cmp	#DRV_NULL
+		bne	18$	
+		lda	#DRV_R1581	
+		jsr	J_0911	
+		txa	
+		bne	18$	
+	16$
+		ldy	#9	
+		rts	
+	18$
+		ldy	#0	
+		rts	CA_NoDrv:	;No Drive Click Action				;1CF5
+		lda	D_212C	
+		beq	20$	
+		jsr	PurgeTurbo	
+		lda	D_212C	
+		bmi	22$	
+		lda	D_212B	
+		clc	
+		adc	#$39	
+		sta	D_1D9A	
+		ldx	#]B_1D9D
+		lda	#[B_1D9D	
+		jsr	DoDlg	
+		CmpBI	r0,#CANCEL
+		beq	20$	
+		jsr	J_1D28	
+	22$
+		lda	D_212B	
+		jsr	J_1DF2	
+		jsr	J_1DB0	
+		dec	D_180C	
+	20$
+		rts	J_1D28:
+		php	
+		sei	
+		LoadW	iotBotVector,#IV_1D53
+		LoadW	D_1D5F,#a6
+		plp	
+	24$
+		lda	D_1D5F	
+		ora	D_1D60	
+		bne	24$	
+		php	
+		sei	
+		LoadB	iotBotVector,#NULL
+		sta	D_84A0	
+		plp	
+		rts	IV_1D53:	DecW	D_1D5F
+		rts	D_1D5F:
+		.byte	0      
+	D_1D60:
+		.byte	0 
+	D_1D61:
+		.byte	BOLDON,"If you are able to, please",NULL	
+	D_1D7D:
+		.byte	"turn OFF and/or unplug drive " 
+	D_1D9A:
+		.byte	"x.",NULL	B_1D9D:
+		.byte	$81	
+		.byte	DBTXTSTR	
+		.byte	$0C	
+		.byte	$20	
+		.word	D_1D61	
+		.byte	DBTXTSTR	
+		.byte	$0C	
+		.byte	$30	
+		.word	D_1D7D	
+		.byte	OK	
+		.byte	$01	
+		.byte	$48	
+		.byte	CANCEL	
+		.byte	$11	
+		.byte	$48	
+		.byte	NULL
+	
+	D_1DAF:
+		.byte	0	J_1DB0:
+		LoadB	D_1DAF,#0
+		lda	#8	
+		jsr	J_1DCB	
+		lda	#9	
+		jsr	J_1DCB	
+		lda	#10	
+		jsr	J_1DCB	
+		MoveB	D_1DAF,numDrives
+		rts	J_1DCB:
+		tay	
+		lda	driveNdxTyp,Y	
+		beq	26$	
+		bmi	28$	
+		tya	
+		jsr	J_1DE1	
+		bne	28$	
+		jsr	J_1DF2	
+		rts	
+	28$
+		inc	D_1DAF	
+	26$
+		rts	J_1DE1:
+		jsr	J_073E	
+		lda	numDrives	
+		bne	30$	
+		inc	numDrives	
+	30$
+		jsr	NewDisk	
+		cpx	#13	
+		rts

@@ -1,0 +1,5 @@
+.if !GEOASSV1
+	.include geo.mac
+.else
+	.include geov11.mac
+.endif

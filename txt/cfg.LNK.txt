@@ -1,0 +1,38 @@
+;Reverse Engineered by Paul B Murdaugh. 7/30/20 10:30PM - 8/3/20 12:05 AM
+;paulbmurdaugh@gmail.com
+
+.output	CONFIGURE
+.header	CFG.hdr.rel	
+.vlir
+
+.psect	$0406
+.ramsect	$2000
+CFG.00.s.rel
+
+.mod	1		;User Interface used when 
+.psect	$13B1		;Ran From Desktop
+CFG.m1.00.s.rel
+CFG.m1.01.s.rel
+
+.mod	2		;1541 Disk Driver
+.psect	$9000		;DISK_BASE
+CFG.m2.41.s.rel
+		
+.mod	3		;1571 Disk Driver
+.psect	$9000		;DISK_BASE
+CFG.m3.71.s.rel
+
+.mod	4		;1581 Disk Driver
+.psect	$9000		;DISK_BASE
+CFG.m4.81.s.rel
+
+.mod	5		;RAM 1571 Disk Driver	
+.psect	$9000		;DISK_BASE
+CFG.m5.R71.s.rel
+
+
+.mod	6		;RAM 1581 Disk Driver	
+.psect	$9000		;DISK_BASE
+CFG.m6.R81.s.rel
+
+
